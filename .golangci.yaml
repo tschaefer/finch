@@ -1,0 +1,10 @@
+---
+version: 2
+linters:
+  settings:
+    errcheck:
+      exclude-functions:
+        - (*encoding/json.Encoder).Encode
+formatters:
+  enable:
+    - gofmt
