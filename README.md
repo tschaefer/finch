@@ -12,8 +12,8 @@ services:
 - **Traefik** - The reverse proxy
 - **Finch** - The log agent manager
 
-Consider to read the [Blog post](https://blog.tschaefer.org) for motivation
-and a walkthrough before using this tool.
+Consider to read the [Blog post](https://blog.tschaefer.org/posts/2025/08/17/finch-a-minimal-logging-stack/)
+for motivation and a walkthrough before using this tool.
 
 For deployment please follow the instructions in the [finchctl
 repository](https://github.com/tschaefer/finchctl).
