@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"os"
 	"slices"
-	"strings"
 	"text/template"
 	"time"
 
@@ -55,6 +54,10 @@ loki.write "default" {
 			insecure_skip_verify = true
 		}
 	}
+	external_labels = {
+		"host" = "{{ .Hostname }}",
+		"rid" = "{{ .ResourceId }}",
+	}
 }
 
 {{ if .LogSources.Journal -}}
@@ -85,9 +88,6 @@ loki.relabel "journal" {
 loki.source.journal "journal" {
 	format_as_json = true
 	max_age        = "12h"
-	labels         = {
-		"host" = "{{ .Hostname }}",
-	}
 	relabel_rules  = loki.relabel.journal.rules
 	forward_to     = [loki.write.default.receiver]
 }
@@ -113,7 +113,6 @@ loki.source.docker "docker" {
 	targets = discovery.docker.linux.targets
 	labels  = {
 		"platform" = "docker",
-		"host" = "{{ .Hostname }}",
 	}
 	relabel_rules = loki.relabel.docker.rules
 	forward_to    = [loki.write.default.receiver]
@@ -121,11 +120,17 @@ loki.source.docker "docker" {
 {{ end -}}
 
 {{ if .LogSources.Files }}
+
+local.file_match "files" {
+	path_targets = [
+			{{- range .LogSources.Files }}
+			{{ . }},
+			{{- end }}
+		]
+}
+
 loki.source.file "file" {
-	targets    = {{ .LogSources.Files }}
-	labels     = {
-		"host" = "{{ .Hostname }}",
-	}
+	targets    = local.file_match.files.targets
 	forward_to = [loki.write.default.receiver]
 }
 {{ end -}}
@@ -224,7 +229,7 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		LogSources  struct {
 			Journal bool
 			Docker  bool
-			Files   string
+			Files   []string
 		}
 	}{
 		Hostname:    agent.Hostname,
@@ -235,11 +240,11 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		LogSources: struct {
 			Journal bool
 			Docker  bool
-			Files   string
+			Files   []string
 		}{
 			Journal: false,
 			Docker:  false,
-			Files:   "",
+			Files:   make([]string, 0),
 		},
 	}
 
@@ -255,8 +260,8 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		case "docker":
 			data.LogSources.Docker = true
 		case "file":
-			files = append(files, fmt.Sprintf("\"%s\"", uri.Path))
-			data.LogSources.Files = fmt.Sprintf("[%s]", strings.Join(files, ", "))
+			files = append(files, fmt.Sprintf("{__path__ = \"%s\"}", uri.Path))
+			data.LogSources.Files = files // fmt.Sprintf("[%s,]", strings.Join(files, ", "))
 		default:
 			continue
 		}
