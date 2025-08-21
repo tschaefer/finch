@@ -121,6 +121,15 @@ loki.source.docker "docker" {
 
 {{ if .LogSources.Files }}
 
+loki.process "files" {
+	stage.static_labels {
+		values = {
+			service_name = "loki.source.file.files",
+		}
+	}
+	forward_to = [loki.write.default.receiver]
+}
+
 local.file_match "files" {
 	path_targets = [
 			{{- range .LogSources.Files }}
@@ -131,7 +140,7 @@ local.file_match "files" {
 
 loki.source.file "file" {
 	targets    = local.file_match.files.targets
-	forward_to = [loki.write.default.receiver]
+	forward_to = [loki.process.files.receiver]
 }
 {{ end -}}
 `
