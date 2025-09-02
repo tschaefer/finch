@@ -5,8 +5,9 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package manager
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/tschaefer/finch/internal/config"
@@ -64,7 +65,10 @@ func (m *manager) Run(listenAddr string) {
 		Handler:      router,
 	}
 
-	log.Printf("Starting Finch management server.")
-	log.Printf("Listening on %s", listenAddr)
-	log.Fatal(server.ListenAndServe())
+	slog.Info("Starting Finch management server")
+	slog.Info("Listening on " + listenAddr)
+	if err := server.ListenAndServe(); err != nil {
+		slog.Error("Error starting server: " + err.Error())
+		os.Exit(1)
+	}
 }
