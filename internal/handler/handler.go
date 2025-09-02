@@ -44,12 +44,12 @@ func (h *handler) Router() *mux.Router {
 }
 
 func (h *handler) notFound(w http.ResponseWriter, r *http.Request) {
-	h.makeLog(r, http.StatusNotFound, slog.LevelWarn)
+	h.makeLog(r, http.StatusNotFound, slog.LevelWarn, "route not found")
 	h.makeError(w, http.StatusNotFound, "route not found")
 }
 
 func (h *handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	h.makeLog(r, http.StatusMethodNotAllowed, slog.LevelWarn)
+	h.makeLog(r, http.StatusMethodNotAllowed, slog.LevelWarn, "method not allowed")
 	h.makeError(w, http.StatusMethodNotAllowed, "method not allowed")
 }
 
@@ -75,7 +75,7 @@ func (h *handler) basicAuth(next http.Handler) http.Handler {
 		u, p := h.config.Credentials()
 
 		if !ok || username != u || password != p {
-			h.makeLog(r, http.StatusUnauthorized, slog.LevelWarn)
+			h.makeLog(r, http.StatusUnauthorized, slog.LevelWarn, "unauthorized")
 			h.makeError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -83,7 +83,7 @@ func (h *handler) basicAuth(next http.Handler) http.Handler {
 	})
 }
 
-func (h *handler) makeLog(r *http.Request, status int, level slog.Level) {
+func (h *handler) makeLog(r *http.Request, status int, level slog.Level, msg string) {
 	args := []any{
 		slog.String("RemoteAddr", r.RemoteAddr),
 		slog.String("UserAgent", r.UserAgent()),
@@ -94,12 +94,12 @@ func (h *handler) makeLog(r *http.Request, status int, level slog.Level) {
 
 	switch level {
 	case slog.LevelInfo:
-		slog.Info("", args...)
+		slog.Info(msg, args...)
 	case slog.LevelWarn:
-		slog.Warn("", args...)
+		slog.Warn(msg, args...)
 	case slog.LevelError:
-		slog.Error("", args...)
+		slog.Error(msg, args...)
 	default:
-		slog.Info("", args...)
+		slog.Info(msg, args...)
 	}
 }
