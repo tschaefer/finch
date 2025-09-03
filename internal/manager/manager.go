@@ -29,6 +29,8 @@ type manager struct {
 }
 
 func New(cfgFile string) (Manager, error) {
+	slog.Debug("Initializing Manager", "cfgFile", cfgFile)
+
 	cfg, err := config.Read(cfgFile)
 	if err != nil {
 		return nil, err
@@ -55,6 +57,8 @@ func New(cfgFile string) (Manager, error) {
 }
 
 func (m *manager) Run(listenAddr string) {
+	slog.Debug("Running Manager", "listenAddr", listenAddr)
+
 	router := handler.New(m.controller, m.config).Router()
 
 	server := &http.Server{

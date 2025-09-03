@@ -6,6 +6,7 @@ package database
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
 
 	"gorm.io/driver/sqlite"
@@ -26,6 +27,8 @@ type database struct {
 }
 
 func New(config config.Config) (Database, error) {
+	slog.Debug("Initializing database", "config", fmt.Sprintf("%+v", config))
+
 	uri, err := url.Parse(config.Database())
 	if err != nil {
 		return nil, err
@@ -66,9 +69,13 @@ func New(config config.Config) (Database, error) {
 }
 
 func (d *database) Connection() *gorm.DB {
+	slog.Debug("Retrieving database connection")
+
 	return d.connection
 }
 
 func (d *database) Migrate() error {
+	slog.Debug("Migrating database schema")
+
 	return d.connection.AutoMigrate(&model.Agent{})
 }

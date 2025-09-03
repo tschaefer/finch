@@ -7,6 +7,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 	"reflect"
@@ -42,6 +43,8 @@ type config struct {
 }
 
 func Read(file string) (Config, error) {
+	slog.Debug("Reading configuration file", "file", file)
+
 	data, err := unmarshal(file)
 	if err != nil {
 		return nil, err

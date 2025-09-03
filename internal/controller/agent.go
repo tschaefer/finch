@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"slices"
@@ -161,6 +162,8 @@ http:
 `
 
 func (c *controller) RegisterAgent(hostname string, tags, logSources []string) (string, error) {
+	slog.Debug("Register Agent", "hostname", hostname, "tags", tags, "logSources", logSources)
+
 	agent, err := c.marshalAgent(hostname, tags, logSources)
 	if err != nil {
 		return "", err
@@ -189,6 +192,8 @@ func (c *controller) RegisterAgent(hostname string, tags, logSources []string) (
 }
 
 func (c *controller) DeregisterAgent(rid string) error {
+	slog.Debug("Deregister Agent", "rid", rid)
+
 	agent, err := c.model.GetAgent(&model.Agent{ResourceId: rid})
 	if err != nil {
 		if errors.Is(err, model.ErrAgentNotFound) {
@@ -211,6 +216,8 @@ func (c *controller) DeregisterAgent(rid string) error {
 }
 
 func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
+	slog.Debug("Create Agent Config", "rid", rid)
+
 	agent, err := c.model.GetAgent(&model.Agent{ResourceId: rid})
 	if err != nil {
 		if errors.Is(err, model.ErrAgentNotFound) {
@@ -285,6 +292,8 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 }
 
 func (c *controller) ListAgents() ([]map[string]string, error) {
+	slog.Debug("List Agents")
+
 	agents := []model.Agent{}
 	_, err := c.model.ListAgents(&agents)
 	if err != nil {
@@ -304,6 +313,8 @@ func (c *controller) ListAgents() ([]map[string]string, error) {
 }
 
 func (c *controller) GetAgent(rid string) (*model.Agent, error) {
+	slog.Debug("Get Agent", "rid", rid)
+
 	agent, err := c.model.GetAgent(&model.Agent{ResourceId: rid})
 	if err != nil {
 		if errors.Is(err, model.ErrAgentNotFound) {

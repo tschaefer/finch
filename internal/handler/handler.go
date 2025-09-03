@@ -6,6 +6,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -25,6 +26,8 @@ type handler struct {
 }
 
 func New(ctrl controller.Controller, cfg config.Config) Handler {
+	slog.Debug("Initializing Handler", "ctrl", fmt.Sprintf("%+v", ctrl), "cfg", fmt.Sprintf("%+v", cfg))
+
 	router := mux.NewRouter()
 
 	return &handler{
@@ -44,6 +47,8 @@ func (h *handler) Router() *mux.Router {
 }
 
 func (h *handler) notFound(w http.ResponseWriter, r *http.Request) {
+	slog.Debug("Route not found", "path", r.URL.Path)
+
 	h.makeLog(r, http.StatusNotFound, slog.LevelWarn, "route not found")
 	h.makeError(w, http.StatusNotFound, "route not found")
 }
