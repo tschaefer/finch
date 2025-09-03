@@ -16,7 +16,7 @@ func completeServerLogLevel(cmd *cobra.Command, args []string, toComplete string
 }
 
 func completeServerLogFormat(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
-	return []cobra.Completion{"structured", "json"}, cobra.ShellCompDirectiveDefault
+	return []cobra.Completion{"structured", "json", "text"}, cobra.ShellCompDirectiveDefault
 }
 
 func setLogger(logLevel string, logFormat string) {
@@ -44,6 +44,8 @@ func setLogger(logLevel string, logFormat string) {
 		logger = slog.New(slog.NewTextHandler(os.Stdout, opts))
 	case "json":
 		logger = slog.New(slog.NewJSONHandler(os.Stdout, opts))
+	case "text":
+		return
 	default:
 		cobra.CheckErr("unknown log format")
 	}
