@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"slices"
 )
 
 type Data struct {
@@ -54,7 +55,7 @@ func Read(file string) (Config, error) {
 		return nil, err
 	}
 
-	slog.Debug("Configuration data", "data", fmt.Sprintf("%+v", *data))
+	slog.Debug("Configuration data", "data", filterSecrets(data))
 
 	return &config{
 		data:    data,
@@ -136,4 +137,23 @@ func valid(data *Data) error {
 	}
 
 	return nil
+}
+
+func filterSecrets(p any) map[string]string {
+	secrets := []string{"Secret", "Credentials"}
+
+	result := make(map[string]string)
+	object := reflect.ValueOf(p).Elem()
+	typ := object.Type()
+
+	for i := range object.NumField() {
+		field := typ.Field(i)
+		if slices.Contains(secrets, field.Name) {
+			result[field.Name] = "REDACTED"
+		} else {
+			result[field.Name] = fmt.Sprintf("%v", object.Field(i).Interface())
+		}
+	}
+
+	return result
 }
