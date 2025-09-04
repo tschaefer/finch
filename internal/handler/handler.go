@@ -26,7 +26,7 @@ type handler struct {
 }
 
 func New(ctrl controller.Controller, cfg config.Config) Handler {
-	slog.Debug("Initializing Handler", "ctrl", fmt.Sprintf("%+v", ctrl), "cfg", fmt.Sprintf("%+v", cfg))
+	slog.Debug("Initializing Handler", "ctrl", fmt.Sprintf("%+T", ctrl), "cfg", fmt.Sprintf("%+T", cfg))
 
 	router := mux.NewRouter()
 

@@ -27,7 +27,7 @@ type database struct {
 }
 
 func New(config config.Config) (Database, error) {
-	slog.Debug("Initializing database", "config", fmt.Sprintf("%+v", config))
+	slog.Debug("Initializing database", "config", fmt.Sprintf("%+T", config))
 
 	uri, err := url.Parse(config.Database())
 	if err != nil {

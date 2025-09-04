@@ -22,7 +22,7 @@ type controller struct {
 }
 
 func New(model model.Model, cfg config.Config) Controller {
-	slog.Debug("Initializing Controller", "model", fmt.Sprintf("%+v", model), "config", fmt.Sprintf("%+v", cfg))
+	slog.Debug("Initializing Controller", "model", fmt.Sprintf("%+T", model), "config", fmt.Sprintf("%+T", cfg))
 
 	return &controller{
 		model:  model,

@@ -45,6 +45,7 @@ func setLogger(logLevel string, logFormat string) {
 	case "json":
 		logger = slog.New(slog.NewJSONHandler(os.Stdout, opts))
 	case "text":
+		// Use default logger, print info level only.
 		return
 	default:
 		cobra.CheckErr("unknown log format")
