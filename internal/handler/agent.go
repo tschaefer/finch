@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -33,6 +34,7 @@ func (h *handler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 	var p payload
 
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		h.makeLog(r, http.StatusBadRequest, slog.LevelError, "invalid request body")
 		h.makeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -43,10 +45,12 @@ func (h *handler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, controller.ErrAgentAlreadyExists) {
 			status = http.StatusConflict
 		}
+		h.makeLog(r, status, slog.LevelError, err.Error())
 		h.makeError(w, status, err.Error())
 		return
 	}
 
+	h.makeLog(r, http.StatusCreated, slog.LevelInfo, fmt.Sprintf("agent %s created", rid))
 	h.makeResponse(w, http.StatusCreated, map[string]string{"rid": rid})
 }
 
@@ -59,10 +63,12 @@ func (h *handler) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, controller.ErrAgentNotFound) {
 			status = http.StatusNotFound
 		}
+		h.makeLog(r, status, slog.LevelError, err.Error())
 		h.makeError(w, status, err.Error())
 		return
 	}
 
+	h.makeLog(r, http.StatusNoContent, slog.LevelInfo, fmt.Sprintf("agent %s deleted", rid))
 	h.makeResponse(w, http.StatusNoContent, nil)
 }
 
@@ -76,10 +82,12 @@ func (h *handler) GetAgent(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, controller.ErrAgentNotFound) {
 			status = http.StatusNotFound
 		}
+		h.makeLog(r, status, slog.LevelError, err.Error())
 		h.makeError(w, status, err.Error())
 		return
 	}
 
+	h.makeLog(r, http.StatusOK, slog.LevelInfo, fmt.Sprintf("agent %s retrieved", rid))
 	h.makeResponse(w, http.StatusOK, agent)
 }
 
@@ -93,21 +101,25 @@ func (h *handler) GetAgentConfig(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, controller.ErrAgentNotFound) {
 			status = http.StatusNotFound
 		}
+		h.makeLog(r, status, slog.LevelError, err.Error())
 		h.makeError(w, status, err.Error())
 		return
 	}
 
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.cfg\"", rid))
 	w.Header().Set("Content-Type", "application/octet-stream")
+	h.makeLog(r, http.StatusOK, slog.LevelInfo, fmt.Sprintf("config for agent %s retrieved", rid))
 	http.ServeContent(w, r, fmt.Sprintf("%s.cfg", rid), time.Now(), bytes.NewReader(config))
 }
 
 func (h *handler) ListAgents(w http.ResponseWriter, r *http.Request) {
 	agents, err := h.controller.ListAgents()
 	if err != nil {
+		h.makeLog(r, http.StatusInternalServerError, slog.LevelError, err.Error())
 		h.makeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	h.makeLog(r, http.StatusOK, slog.LevelInfo, "agents listed")
 	h.makeResponse(w, http.StatusOK, agents)
 }

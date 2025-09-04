@@ -6,6 +6,8 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -24,6 +26,8 @@ type handler struct {
 }
 
 func New(ctrl controller.Controller, cfg config.Config) Handler {
+	slog.Debug("Initializing Handler", "ctrl", fmt.Sprintf("%+T", ctrl), "cfg", fmt.Sprintf("%+T", cfg))
+
 	router := mux.NewRouter()
 
 	return &handler{
@@ -43,10 +47,14 @@ func (h *handler) Router() *mux.Router {
 }
 
 func (h *handler) notFound(w http.ResponseWriter, r *http.Request) {
+	slog.Debug("Route not found", "path", r.URL.Path)
+
+	h.makeLog(r, http.StatusNotFound, slog.LevelWarn, "route not found")
 	h.makeError(w, http.StatusNotFound, "route not found")
 }
 
 func (h *handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	h.makeLog(r, http.StatusMethodNotAllowed, slog.LevelWarn, "method not allowed")
 	h.makeError(w, http.StatusMethodNotAllowed, "method not allowed")
 }
 
@@ -72,9 +80,31 @@ func (h *handler) basicAuth(next http.Handler) http.Handler {
 		u, p := h.config.Credentials()
 
 		if !ok || username != u || password != p {
+			h.makeLog(r, http.StatusUnauthorized, slog.LevelWarn, "unauthorized")
 			h.makeError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (h *handler) makeLog(r *http.Request, status int, level slog.Level, msg string) {
+	args := []any{
+		slog.String("RemoteAddr", r.RemoteAddr),
+		slog.String("UserAgent", r.UserAgent()),
+		slog.Int("Status", status),
+		slog.String("RequestMethod", r.Method),
+		slog.String("RequestPath", r.RequestURI),
+	}
+
+	switch level {
+	case slog.LevelInfo:
+		slog.Info(msg, args...)
+	case slog.LevelWarn:
+		slog.Warn(msg, args...)
+	case slog.LevelError:
+		slog.Error(msg, args...)
+	default:
+		slog.Info(msg, args...)
+	}
 }

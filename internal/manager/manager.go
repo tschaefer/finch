@@ -5,8 +5,9 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package manager
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/tschaefer/finch/internal/config"
@@ -28,6 +29,8 @@ type manager struct {
 }
 
 func New(cfgFile string) (Manager, error) {
+	slog.Debug("Initializing Manager", "cfgFile", cfgFile)
+
 	cfg, err := config.Read(cfgFile)
 	if err != nil {
 		return nil, err
@@ -54,6 +57,8 @@ func New(cfgFile string) (Manager, error) {
 }
 
 func (m *manager) Run(listenAddr string) {
+	slog.Debug("Running Manager", "listenAddr", listenAddr)
+
 	router := handler.New(m.controller, m.config).Router()
 
 	server := &http.Server{
@@ -64,7 +69,10 @@ func (m *manager) Run(listenAddr string) {
 		Handler:      router,
 	}
 
-	log.Printf("Starting Finch management server.")
-	log.Printf("Listening on %s", listenAddr)
-	log.Fatal(server.ListenAndServe())
+	slog.Info("Starting Finch management server")
+	slog.Info("Listening on " + listenAddr)
+	if err := server.ListenAndServe(); err != nil {
+		slog.Error("Error starting server: " + err.Error())
+		os.Exit(1)
+	}
 }
