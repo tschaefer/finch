@@ -11,9 +11,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"log/slog"
 )
 
 func Encrypt(b64key string, plaintext string) (string, error) {
+	slog.Debug("Encrypting data with AES-256-CTR")
+
 	key, err := decodeB64Key(b64key)
 	if err != nil {
 		return "", err
@@ -38,6 +41,8 @@ func Encrypt(b64key string, plaintext string) (string, error) {
 }
 
 func Decrypt(b64key string, encoded string) (string, error) {
+	slog.Debug("Decrypting data with AES-256-CTR")
+
 	key, err := decodeB64Key(b64key)
 	if err != nil {
 		return "", err

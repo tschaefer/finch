@@ -54,6 +54,8 @@ func Read(file string) (Config, error) {
 		return nil, err
 	}
 
+	slog.Debug("Configuration data", "data", fmt.Sprintf("%+v", *data))
+
 	return &config{
 		data:    data,
 		library: path.Dir(file),
