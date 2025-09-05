@@ -89,8 +89,20 @@ func (h *handler) basicAuth(next http.Handler) http.Handler {
 }
 
 func (h *handler) makeLog(r *http.Request, status int, level slog.Level, msg string) {
+	forwardedHeaders := []string{
+		"X-Forwarded-For",
+		"X-Real-IP",
+	}
+	remoteAddr := r.RemoteAddr
+	for _, header := range forwardedHeaders {
+		if ip := r.Header.Get(header); ip != "" {
+			remoteAddr = ip
+			break
+		}
+	}
+
 	args := []any{
-		slog.String("RemoteAddr", r.RemoteAddr),
+		slog.String("RemoteAddr", remoteAddr),
 		slog.String("UserAgent", r.UserAgent()),
 		slog.Int("Status", status),
 		slog.String("RequestMethod", r.Method),
