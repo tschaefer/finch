@@ -49,12 +49,12 @@ func (h *handler) Router() *mux.Router {
 func (h *handler) notFound(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("Route not found", "path", r.URL.Path)
 
-	h.makeLog(r, http.StatusNotFound, slog.LevelWarn, "route not found")
+	go h.makeLog(r, http.StatusNotFound, slog.LevelWarn, "route not found")
 	h.makeError(w, http.StatusNotFound, "route not found")
 }
 
 func (h *handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	h.makeLog(r, http.StatusMethodNotAllowed, slog.LevelWarn, "method not allowed")
+	go h.makeLog(r, http.StatusMethodNotAllowed, slog.LevelWarn, "method not allowed")
 	h.makeError(w, http.StatusMethodNotAllowed, "method not allowed")
 }
 
@@ -80,7 +80,7 @@ func (h *handler) basicAuth(next http.Handler) http.Handler {
 		u, p := h.config.Credentials()
 
 		if !ok || username != u || password != p {
-			h.makeLog(r, http.StatusUnauthorized, slog.LevelWarn, "unauthorized")
+			go h.makeLog(r, http.StatusUnauthorized, slog.LevelWarn, "unauthorized")
 			h.makeError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
