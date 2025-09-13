@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/tschaefer/finch/internal/model"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -66,36 +67,19 @@ func Test_RegisterAgentReturnsError_BadParameters(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	_, err := ctrl.RegisterAgent("", nil, nil)
-	if err == nil {
-		t.Error("Expected error when registering agent with empty hostname, but got nil")
-	}
 	expected := "hostname must not be empty"
-	if err.Error() != expected {
-		t.Errorf("Expected error message '%s', but got '%s'", expected, err.Error())
-	}
+	assert.EqualError(t, err, expected, "register agent with empty hostname")
 
 	_, err = ctrl.RegisterAgent("test-host", nil, nil)
-	if err == nil {
-		t.Error("Expected error when registering agent with no log sources, but got nil")
-	}
 	expected = "at least one log source must be specified"
-	if err.Error() != expected {
-		t.Errorf("Expected error message '%s', but got '%s'", expected, err.Error())
-	}
+	assert.EqualError(t, err, expected, "register agent with no log sources")
 
 	_, err = ctrl.RegisterAgent("test-host", nil, []string{"invalid://source"})
-	if err == nil {
-		t.Error("Expected error when registering agent with invalid log source, but got nil")
-	}
 	expected = "no valid log source specified"
-	if err.Error() != expected {
-		t.Errorf("Expected error message '%s', but got '%s'", expected, err.Error())
-	}
+	assert.EqualError(t, err, expected, "register agent with invalid log source")
 }
 
 func Test_RegisterAgentReturnsError_InvalidSecret(t *testing.T) {
@@ -104,198 +88,132 @@ func Test_RegisterAgentReturnsError_InvalidSecret(t *testing.T) {
 	config.secret = "invalid-secret"
 
 	ctrl := New(model, &config)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	_, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"journal://"})
-	if err == nil {
-		t.Error("Expected error when registering agent with invalid secret, but got nil")
-	}
+	assert.Error(t, err, "register agent with invalid config secret")
 }
 
 func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1", "tag2"}, []string{"file:///var/log/syslog"})
-	if err != nil {
-		t.Fatalf("Expected no error when registering agent, but got: %v", err)
-	}
-	if rid == "" {
-		t.Error("Expected non-empty resource ID, but got empty string")
-	}
+	assert.NoError(t, err, "register agent with valid parameters")
 
-	if !strings.HasPrefix(rid, "rid:") {
-		t.Errorf("Expected resource ID to start with 'rid', but got '%s'", rid)
-	}
+	assert.NotEmpty(t, rid, "resource ID not empty")
+	parts := strings.Split(rid, ":")
+	assert.Len(t, parts, 5, "resource ID format")
+	assert.Equal(t, "rid", parts[0], "resource ID prefix")
+	assert.Equal(t, "finch", parts[1], "resource ID service")
+	assert.Equal(t, "test-id", parts[2], "resource ID identifier")
+	assert.Equal(t, "agent", parts[3], "resource ID type")
+	assert.Len(t, parts[4], 36, "resource ID UUID length")
+
 }
 
 func Test_DeregisterAgentReturnsError_NotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	err := ctrl.DeregisterAgent("non-existent-rid")
-	if err == nil {
-		t.Error("Expected error when deregistering non-existent agent, but got nil")
-	}
 	expected := "agent not found"
-	if err.Error() != expected {
-		t.Errorf("Expected error message '%s', but got '%s'", expected, err.Error())
-	}
+	assert.EqualError(t, err, expected, "deregister non-existent agent")
 }
 
 func Test_DeregisterAgentReturnsNil(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"file:///var/log/syslog"})
-	if err != nil {
-		t.Fatalf("Expected no error when registering agent, but got: %v", err)
-	}
+	assert.NoError(t, err, "register agent with valid parameters")
 
 	err = ctrl.DeregisterAgent(rid)
-	if err != nil {
-		t.Fatalf("Expected no error when deregistering agent, but got: %v", err)
-	}
+	assert.NoError(t, err, "deregister existing agent")
 }
 
 func Test_CreateAgentConfigReturnsError_NotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	_, err := ctrl.CreateAgentConfig("non-existent-rid")
-	if err == nil {
-		t.Error("Expected error when creating agent config for non-existent agent, but got nil")
-	}
 	expected := "agent not found"
-	if err.Error() != expected {
-		t.Errorf("Expected error message '%s', but got '%s'", expected, err.Error())
-	}
+	assert.EqualError(t, err, expected, "create config for non-existent agent")
 }
 
 func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"file:///var/log/syslog"})
-	if err != nil {
-		t.Fatalf("Expected no error when registering agent, but got: %v", err)
-	}
+	assert.NoError(t, err, "register agent with valid parameters")
 
 	config, err := ctrl.CreateAgentConfig(rid)
-	if err != nil {
-		t.Fatalf("Expected no error when creating agent config, but got: %v", err)
-	}
-	if len(config) == 0 {
-		t.Error("Expected non-empty agent config, but got empty byte slice")
-	}
+	assert.NoError(t, err, "create config for existing agent")
+	assert.NotEmpty(t, config, "agent config not empty")
 }
 
 func Test_GetAgentReturnsError_NotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	_, err := ctrl.GetAgent("non-existent-rid")
-	if err == nil {
-		t.Error("Expected error when getting non-existent agent, but got nil")
-	}
 	expected := "agent not found"
-	if err.Error() != expected {
-		t.Errorf("Expected error message '%s', but got '%s'", expected, err.Error())
-	}
+	assert.EqualError(t, err, expected, "get non-existent agent")
 }
 
 func Test_GetAgentReturnsAgent(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"file:///var/log/syslog"})
-	if err != nil {
-		t.Fatalf("Expected no error when registering agent, but got: %v", err)
-	}
+	assert.NoError(t, err, "register agent with valid parameters")
 
 	agent, err := ctrl.GetAgent(rid)
-	if err != nil {
-		t.Fatalf("Expected no error when getting agent, but got: %v", err)
-	}
-	if agent.Hostname != "test-host" {
-		t.Errorf("Expected agent hostname 'test-host', but got '%s'", agent.Hostname)
-	}
+	assert.NoError(t, err, "get existing agent")
+	assert.Equal(t, "test-host", agent.Hostname, "agent hostname")
 }
 
 func Test_ListAgentsReturnsEmptyList(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	agents, err := ctrl.ListAgents()
-	if err != nil {
-		t.Fatalf("Expected no error when listing agents, but got: %v", err)
-	}
-	if len(agents) != 0 {
-		t.Errorf("Expected empty agent list, but got %d agents", len(agents))
-	}
+	assert.NoError(t, err, "list agents")
+	assert.Len(t, agents, 0, "agent list")
 }
 
 func Test_ListAgentsReturnsAgents(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
-	if ctrl == nil {
-		t.Fatal("Expected controller to be created, but got nil")
-	}
+	assert.NotNil(t, ctrl, "create controller")
 
 	_, err := ctrl.RegisterAgent("test-host-1", []string{"tag1"}, []string{"file:///var/log/syslog"})
-	if err != nil {
-		t.Fatalf("Expected no error when registering agent, but got: %v", err)
-	}
+	assert.NoError(t, err, "register first agent")
+
 	_, err = ctrl.RegisterAgent("test-host-2", []string{"tag2"}, []string{"file:///var/log/syslog"})
-	if err != nil {
-		t.Fatalf("Expected no error when registering agent, but got: %v", err)
-	}
+	assert.NoError(t, err, "register second agent")
 
 	agents, err := ctrl.ListAgents()
-	if err != nil {
-		t.Fatalf("Expected no error when listing agents, but got: %v", err)
-	}
-	if len(agents) != 2 {
-		t.Errorf("Expected 2 agents, but got %d agents", len(agents))
-	}
-	if agents[0]["hostname"] != "test-host-1" && agents[1]["hostname"] != "test-host-2" {
-		t.Errorf("Expected agents with hostnames 'test-host-1' and 'test-host-2', but got '%s' and '%s'", agents[0]["hostname"], agents[1]["hostname"])
-	}
+	assert.NoError(t, err, "list agents")
+	assert.Len(t, agents, 2, "agent list")
+	assert.Equal(t, "test-host-1", agents[0]["hostname"], "first agent hostname")
+	assert.Equal(t, "test-host-2", agents[1]["hostname"], "second agent hostname")
 }
-
-// TODO: Test generateCredentialsFile

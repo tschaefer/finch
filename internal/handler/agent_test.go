@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/tschaefer/finch/internal/controller"
 	"github.com/tschaefer/finch/internal/model"
 )
@@ -68,69 +68,58 @@ func (m *mockController) GetAgent(rid string) (*model.Agent, error) {
 
 func Test_ReturnsError404_PathNotFound(t *testing.T) {
 	handler := New(&mockController{}, &mockedConfig)
+	assert.NotNil(t, handler, "create handler")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/nonexistent", nil)
 	rr := httptest.NewRecorder()
 	handler.Router().ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("expected status 404, got %d", status)
-	}
+	assert.EqualValues(t, http.StatusNotFound, rr.Code, "http status")
 
 	var response map[string]string
-	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
+	err := json.NewDecoder(rr.Body).Decode(&response)
+	assert.NoError(t, err, "decode response")
 
-	if response["detail"] != "route not found" {
-		t.Errorf("expected error message 'not found', got %s", response["detail"])
-	}
+	assert.Equal(t, "route not found", response["detail"], "error message")
 }
 
 func Test_ReturnsError405_InvalidMethod(t *testing.T) {
 	handler := New(&mockController{}, &mockedConfig)
+	assert.NotNil(t, handler, "create handler")
 
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/agent", nil)
 	rr := httptest.NewRecorder()
 	handler.Router().ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusMethodNotAllowed {
-		t.Errorf("expected status 405, got %d", status)
-	}
+	assert.EqualValues(t, http.StatusMethodNotAllowed, rr.Code, "http status")
 
 	var response map[string]string
-	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
+	err := json.NewDecoder(rr.Body).Decode(&response)
+	assert.NoError(t, err, "decode response")
 
-	if response["detail"] != "method not allowed" {
-		t.Errorf("expected error message 'method not allowed', got %s", response["detail"])
-	}
+	assert.Equal(t, "method not allowed", response["detail"], "error message")
 }
 
 func Test_ReturnsError401_Unauthorized(t *testing.T) {
 	handler := New(&mockController{}, &mockedConfig)
+	assert.NotNil(t, handler, "create handler")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/agent/4711/config", nil)
 	rr := httptest.NewRecorder()
 	handler.Router().ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusUnauthorized {
-		t.Errorf("expected status 401, got %d", status)
-	}
+	assert.EqualValues(t, http.StatusUnauthorized, rr.Code, "http status")
 
 	var response map[string]string
-	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
+	err := json.NewDecoder(rr.Body).Decode(&response)
+	assert.NoError(t, err, "decode response")
 
-	if response["detail"] != "unauthorized" {
-		t.Errorf("expected error message 'unauthorized', got %s", response["detail"])
-	}
+	assert.Equal(t, "unauthorized", response["detail"], "error message")
 }
 
 func Test_CreateAgentSuccess(t *testing.T) {
 	handler := New(&mockController{}, &mockedConfig)
+	assert.NotNil(t, handler, "create handler")
 
 	body := `{
 		"hostname": "node1",
@@ -146,22 +135,18 @@ func Test_CreateAgentSuccess(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.Router().ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusCreated {
-		t.Fatalf("expected status 201, got %d", status)
-	}
+	assert.EqualValues(t, http.StatusCreated, rr.Code, "http status")
 
 	var response map[string]string
-	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
+	err := json.NewDecoder(rr.Body).Decode(&response)
+	assert.NoError(t, err, "decode response")
 
-	if response["rid"] != "rid:12345" {
-		t.Errorf("unexpected rid value: %s", response["rid"])
-	}
+	assert.Equal(t, "rid:12345", response["rid"], "rid value")
 }
 
 func Test_DeleteAgentSuccess(t *testing.T) {
 	handler := New(&mockController{}, &mockedConfig)
+	assert.NotNil(t, handler, "create handler")
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/agent/rid:12345", nil)
 	username, password := mockedConfig.Credentials()
@@ -170,17 +155,15 @@ func Test_DeleteAgentSuccess(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.Router().ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusNoContent {
-		t.Fatalf("expected status 204, got %d", status)
-	}
+	assert.EqualValues(t, http.StatusNoContent, rr.Code, "http status")
 
-	if rr.Body.Len() != 0 {
-		t.Error("expected empty response body")
-	}
+	assert.Empty(t, rr.Body.String(), "response body")
 }
 
 func Test_GetAgentConfigSuccess(t *testing.T) {
 	handler := New(&mockController{}, &mockedConfig)
+	assert.NotNil(t, handler, "create handler")
+
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/agent/rid:12345/config", nil)
 	username, password := mockedConfig.Credentials()
 	req.SetBasicAuth(username, password)
@@ -192,18 +175,18 @@ func Test_GetAgentConfigSuccess(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", status)
 	}
 
-	var response map[string]any
-	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
+	assert.EqualValues(t, http.StatusOK, rr.Code, "http status")
 
-	if _, ok := response["config"]; !ok {
-		t.Error("expected config key in response")
-	}
+	var response map[string]any
+	err := json.NewDecoder(rr.Body).Decode(&response)
+	assert.NoError(t, err, "decode response")
+
+	assert.Equal(t, true, response["config"], "config value")
 }
 
 func Test_ListAgentsSuccess(t *testing.T) {
 	handler := New(&mockController{}, &mockedConfig)
+	assert.NotNil(t, handler, "create handler")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/agent", nil)
 	username, password := mockedConfig.Credentials()
@@ -212,22 +195,18 @@ func Test_ListAgentsSuccess(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.Router().ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", status)
-	}
+	assert.EqualValues(t, http.StatusOK, rr.Code, "http status")
 
 	var response []map[string]string
-	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
+	err := json.NewDecoder(rr.Body).Decode(&response)
+	assert.NoError(t, err, "decode response")
 
-	if len(response) == 0 {
-		t.Error("expected non-empty agent list")
-	}
+	assert.Len(t, response, 2, "agents count")
 }
 
 func Test_GetAgentNotFound(t *testing.T) {
 	handler := New(&mockController{}, &mockedConfig)
+	assert.NotNil(t, handler, "create handler")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/agent/rid:99999", nil)
 	username, password := mockedConfig.Credentials()
@@ -236,16 +215,11 @@ func Test_GetAgentNotFound(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.Router().ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Fatalf("expected status 404, got %d", status)
-	}
+	assert.EqualValues(t, http.StatusNotFound, rr.Code, "http status")
 
 	var response map[string]string
-	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
+	err := json.NewDecoder(rr.Body).Decode(&response)
+	assert.NoError(t, err, "decode response")
 
-	if !strings.HasSuffix(response["detail"], "agent not found") {
-		t.Errorf("expected error message 'agent not found', got %s", response["detail"])
-	}
+	assert.Contains(t, response["detail"], "agent not found", "error message")
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -24,8 +25,9 @@ func mockDatabase() *gorm.DB {
 func Test_CreateAgentSucceeds(t *testing.T) {
 	db := mockDatabase()
 	m := New(db)
+	assert.NotNil(t, m, "create model")
 
-	agent := &Agent{
+	data := &Agent{
 		Active:       true,
 		Hostname:     "test-agent",
 		LastSeen:     nil,
@@ -37,52 +39,19 @@ func Test_CreateAgentSucceeds(t *testing.T) {
 		Tags:         []string{"tag1", "tag2"},
 		Username:     "testuser",
 	}
-	createdAgent, err := m.CreateAgent(agent)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	agent, err := m.CreateAgent(data)
+	assert.NoError(t, err, "create agent")
 
-	if createdAgent.Hostname != agent.Hostname {
-		t.Errorf("expected hostname %s, got %s", agent.Hostname, createdAgent.Hostname)
-	}
-
-	if len(createdAgent.LogSources) != len(agent.LogSources) {
-		t.Errorf("expected %d log sources, got %d", len(agent.LogSources), len(createdAgent.LogSources))
-	}
-
-	if createdAgent.ResourceId != agent.ResourceId {
-		t.Errorf("expected resource ID %s, got %s", agent.ResourceId, createdAgent.ResourceId)
-	}
-
-	if createdAgent.Username != agent.Username {
-		t.Errorf("expected username %s, got %s", agent.Username, createdAgent.Username)
-	}
-
-	if createdAgent.Active != agent.Active {
-		t.Errorf("expected active status %v, got %v", agent.Active, createdAgent.Active)
-	}
-
-	if createdAgent.Password != agent.Password {
-		t.Errorf("expected password %s, got %s", agent.Password, createdAgent.Password)
-	}
-
-	if createdAgent.PasswordHash != agent.PasswordHash {
-		t.Errorf("expected password hash %s, got %s", agent.PasswordHash, createdAgent.PasswordHash)
-	}
-
-	if createdAgent.RegisteredAt.IsZero() {
-		t.Error("expected registered_at to be set, got zero value")
-	}
-
-	if len(createdAgent.Tags) != len(agent.Tags) {
-		t.Errorf("expected %d tags, got %d", len(agent.Tags), len(createdAgent.Tags))
-	}
-
-	if createdAgent.LastSeen != nil {
-		t.Error("expected last_seen to be nil, got non-nil value")
-	}
-
-	if createdAgent.ID == 0 {
-		t.Error("expected agent ID to be set, got zero value")
-	}
+	assert.Equal(t, agent.Hostname, agent.Hostname, "agent hostname")
+	assert.Equal(t, agent.LogSources, agent.LogSources, "agent log sources")
+	assert.Equal(t, agent.ResourceId, agent.ResourceId, "agent resource ID")
+	assert.Equal(t, agent.Tags, agent.Tags, "agent tags")
+	assert.Equal(t, agent.Username, agent.Username, "agent username")
+	assert.Equal(t, agent.Active, agent.Active, "agent active status")
+	assert.Equal(t, agent.Password, agent.Password, "agent password")
+	assert.Equal(t, agent.PasswordHash, agent.PasswordHash, "agent password hash")
+	assert.NotZero(t, agent.RegisteredAt, "agent registered at")
+	assert.Equal(t, agent.Tags, agent.Tags, "agent tags")
+	assert.Nil(t, agent.LastSeen, "agent last seen")
+	assert.NotZero(t, agent.ID, "agent ID")
 }
