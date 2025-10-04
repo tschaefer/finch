@@ -46,6 +46,10 @@ type config struct {
 func Read(file string) (Config, error) {
 	slog.Debug("Reading configuration file", "file", file)
 
+	if file == "" {
+		return nil, fmt.Errorf("configuration file path is empty")
+	}
+
 	data, err := unmarshal(file)
 	if err != nil {
 		return nil, err

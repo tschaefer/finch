@@ -12,6 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func Test_ReadReturnsError_EmptyFilePath(t *testing.T) {
+	_, err := Read("")
+	assert.Error(t, err, "read config file")
+
+	wanted := "configuration file path is empty"
+	assert.Contains(t, err.Error(), wanted, "error message")
+}
+
 func Test_ReadReturnsError_NotExistingFile(t *testing.T) {
 	_, err := Read("/path/not/found/finch.json")
 	assert.Error(t, err, "read config file")
