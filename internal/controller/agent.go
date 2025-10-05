@@ -160,7 +160,12 @@ prometheus.remote_write "default" {
 	}
 }
 
-prometheus.exporter.unix "node" { }
+prometheus.exporter.unix "node" {
+	include_exporter_metrics = true
+	enable_collectors = [
+		"systemd",
+	]
+}
 
 prometheus.scrape "node" {
 	targets    = prometheus.exporter.unix.node.targets
