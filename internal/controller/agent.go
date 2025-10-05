@@ -145,6 +145,8 @@ loki.source.file "file" {
 }
 {{ end -}}
 
+{{ if .LogSources.Metrics }}
+
 prometheus.remote_write "default" {
 	endpoint {
 		url = "https://{{ .ServiceName }}/prometheus/api/v1/write"
@@ -171,6 +173,7 @@ prometheus.scrape "node" {
 	targets    = prometheus.exporter.unix.node.targets
 	forward_to = [prometheus.remote_write.default.receiver]
 }
+{{ end -}}
 `
 
 const lokiUsersTemplate = `---
@@ -272,6 +275,7 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		LogSources  struct {
 			Journal bool
 			Docker  bool
+			Metrics bool
 			Files   []string
 		}
 	}{
@@ -283,6 +287,7 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		LogSources: struct {
 			Journal bool
 			Docker  bool
+			Metrics bool
 			Files   []string
 		}{
 			Journal: false,
@@ -305,6 +310,8 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		case "file":
 			files = append(files, fmt.Sprintf("{__path__ = \"%s\"}", uri.Path))
 			data.LogSources.Files = files // fmt.Sprintf("[%s,]", strings.Join(files, ", "))
+		case "metrics":
+			data.LogSources.Metrics = true
 		default:
 			continue
 		}
@@ -374,7 +381,7 @@ func (c *controller) marshalAgent(hostname string, tags, logSources []string) (*
 		if err != nil {
 			continue
 		}
-		if !slices.Contains([]string{"journal", "docker", "file"}, uri.Scheme) {
+		if !slices.Contains([]string{"journal", "docker", "file", "metrics"}, uri.Scheme) {
 			continue
 		}
 
