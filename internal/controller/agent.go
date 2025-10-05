@@ -144,6 +144,28 @@ loki.source.file "file" {
 	forward_to = [loki.process.files.receiver]
 }
 {{ end -}}
+
+prometheus.remote_write "default" {
+	endpoint {
+		url = "https://{{ .ServiceName }}/prometheus/api/v1/write"
+
+		basic_auth {
+			username = "{{ .Username }}"
+			password = "{{ .Password }}"
+		}
+	}
+	external_labels = {
+		"host" = "{{ .Hostname }}",
+		"rid" = "{{ .ResourceId }}",
+	}
+}
+
+prometheus.exporter.unix "node" { }
+
+prometheus.scrape "node" {
+	targets    = prometheus.exporter.unix.node.targets
+	forward_to = [prometheus.remote_write.default.receiver]
+}
 `
 
 const lokiUsersTemplate = `---
