@@ -41,7 +41,7 @@ metrics collection.
 ```bash
 curl -u admin:admin -X POST \
   -H "Content-Type: application/json" \
-  -d '{"hostname": "app.example.com", "log-sources": ["journal://"], "metrics": true }' \
+  -d '{"hostname": "app.example.com", "log_sources": ["journal://"], "metrics": true }' \
   https://finch.example.com/api/v1/agent
 
   {"rid":"rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}
