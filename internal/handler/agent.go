@@ -30,6 +30,7 @@ func (h *handler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 		Hostname   string   `json:"hostname"`
 		Tags       []string `json:"tags"`
 		LogSources []string `json:"log_sources"`
+		Metrics    bool     `json:"metrics"`
 	}
 	var p payload
 
@@ -39,7 +40,7 @@ func (h *handler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rid, err := h.controller.RegisterAgent(p.Hostname, p.Tags, p.LogSources)
+	rid, err := h.controller.RegisterAgent(p.Hostname, p.Tags, p.LogSources, p.Metrics)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, controller.ErrAgentAlreadyExists) {

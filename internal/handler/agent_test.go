@@ -47,7 +47,7 @@ var mockedConfig = mockConfig{
 
 type mockController struct{}
 
-func (m *mockController) RegisterAgent(hostname string, tags, logSources []string) (string, error) {
+func (m *mockController) RegisterAgent(hostname string, tags, logSources []string, metrics bool) (string, error) {
 	return "rid:12345", nil
 }
 func (m *mockController) DeregisterAgent(rid string) error {

@@ -30,7 +30,7 @@ var (
 )
 
 type ControllerAgent interface {
-	RegisterAgent(hostname string, tags, logSources []string) (string, error)
+	RegisterAgent(hostname string, tags, logSources []string, metrics bool) (string, error)
 	DeregisterAgent(rid string) error
 	CreateAgentConfig(rid string) ([]byte, error)
 	ListAgents() ([]map[string]string, error)
@@ -145,7 +145,7 @@ loki.source.file "file" {
 }
 {{ end -}}
 
-{{ if .LogSources.Metrics }}
+{{ if .Metrics }}
 
 prometheus.remote_write "default" {
 	endpoint {
@@ -191,10 +191,10 @@ http:
 {{- end }}
 `
 
-func (c *controller) RegisterAgent(hostname string, tags, logSources []string) (string, error) {
-	slog.Debug("Register Agent", "hostname", hostname, "tags", tags, "logSources", logSources)
+func (c *controller) RegisterAgent(hostname string, tags, logSources []string, Metrics bool) (string, error) {
+	slog.Debug("Register Agent", "hostname", hostname, "tags", tags, "logSources", logSources, "metrics", Metrics)
 
-	agent, err := c.marshalAgent(hostname, tags, logSources)
+	agent, err := c.marshalAgent(hostname, tags, logSources, Metrics)
 	if err != nil {
 		return "", err
 	}
@@ -275,9 +275,9 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		LogSources  struct {
 			Journal bool
 			Docker  bool
-			Metrics bool
 			Files   []string
 		}
+		Metrics bool
 	}{
 		Hostname:    agent.Hostname,
 		ServiceName: c.config.Hostname(),
@@ -287,13 +287,13 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		LogSources: struct {
 			Journal bool
 			Docker  bool
-			Metrics bool
 			Files   []string
 		}{
 			Journal: false,
 			Docker:  false,
 			Files:   make([]string, 0),
 		},
+		Metrics: agent.Metrics,
 	}
 
 	files := make([]string, 0)
@@ -310,8 +310,6 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		case "file":
 			files = append(files, fmt.Sprintf("{__path__ = \"%s\"}", uri.Path))
 			data.LogSources.Files = files // fmt.Sprintf("[%s,]", strings.Join(files, ", "))
-		case "metrics":
-			data.LogSources.Metrics = true
 		default:
 			continue
 		}
@@ -366,7 +364,7 @@ func (c *controller) GetAgent(rid string) (*model.Agent, error) {
 	return agent, nil
 }
 
-func (c *controller) marshalAgent(hostname string, tags, logSources []string) (*model.Agent, error) {
+func (c *controller) marshalAgent(hostname string, tags, logSources []string, metrics bool) (*model.Agent, error) {
 	if hostname == "" {
 		return nil, fmt.Errorf("hostname must not be empty")
 	}
@@ -381,7 +379,7 @@ func (c *controller) marshalAgent(hostname string, tags, logSources []string) (*
 		if err != nil {
 			continue
 		}
-		if !slices.Contains([]string{"journal", "docker", "file", "metrics"}, uri.Scheme) {
+		if !slices.Contains([]string{"journal", "docker", "file"}, uri.Scheme) {
 			continue
 		}
 
@@ -405,6 +403,7 @@ func (c *controller) marshalAgent(hostname string, tags, logSources []string) (*
 	agent := &model.Agent{
 		Hostname:     hostname,
 		LogSources:   effectiveLogSources,
+		Metrics:      metrics,
 		Tags:         tags,
 		ResourceId:   fmt.Sprintf("rid:finch:%s:agent:%s", c.config.Id(), uuid.New().String()),
 		Username:     rand.Text(),
