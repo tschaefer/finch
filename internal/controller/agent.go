@@ -155,6 +155,10 @@ prometheus.remote_write "default" {
 			username = "{{ .Username }}"
 			password = "{{ .Password }}"
 		}
+
+		tls_config {
+			insecure_skip_verify = true
+		}
 	}
 	external_labels = {
 		"host" = "{{ .Hostname }}",
