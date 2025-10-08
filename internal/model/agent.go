@@ -19,6 +19,7 @@ type Agent struct {
 	Hostname     string     `gorm:"not null;unique" json:"hostname"`
 	LastSeen     *time.Time `gorm:"default:NULL" json:"last_seen"`
 	LogSources   []string   `gorm:"not null;serializer:json" json:"log_sources"`
+	Metrics      bool       `gorm:"not null;default:false" json:"metrics"`
 	Password     string     `gorm:"not null" json:"-"`
 	PasswordHash string     `gorm:"not null" json:"-"`
 	RegisteredAt time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP" json:"registered_at"`
