@@ -174,8 +174,9 @@ prometheus.exporter.unix "node" {
 }
 
 prometheus.scrape "node" {
-	targets    = prometheus.exporter.unix.node.targets
-	forward_to = [prometheus.remote_write.default.receiver]
+	targets         = prometheus.exporter.unix.node.targets
+	forward_to      = [prometheus.remote_write.default.receiver]
+	scrape_interval = "15s"
 }
 {{ end -}}
 `
