@@ -42,6 +42,7 @@ func (h *handler) Router() *mux.Router {
 	h.router.MethodNotAllowedHandler = http.HandlerFunc(h.methodNotAllowed)
 	h.router.Use(h.basicAuth)
 	h.registerAgentHandlers()
+	h.registerSupportHandlers()
 
 	return h.router
 }

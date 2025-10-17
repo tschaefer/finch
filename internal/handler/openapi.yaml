@@ -1,0 +1,188 @@
+openapi: 3.0.3
+info:
+  title: Finch Agent Management API
+  version: 1.0.0
+  description: API for registering, managing, and configuring logging agents in Finch.
+servers:
+  - url: https://finch.example.com
+    description: Production server
+  - url: http://localhost:3000
+    description: Local server
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  schemas:
+    AgentRegistration:
+      type: object
+      required:
+        - hostname
+        - log_sources
+      properties:
+        hostname:
+          type: string
+          example: "app.example.com"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["web", "production"]
+        log_sources:
+          type: array
+          items:
+            type: string
+          example: ["journal://", "file:///var/log/app.log"]
+        metrics:
+          type: boolean
+          example: true
+    AgentRID:
+      type: object
+      properties:
+        rid:
+          type: string
+          example: "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"
+    Agent:
+      type: object
+      properties:
+        hostname:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        log_sources:
+          type: array
+          items:
+            type: string
+        metrics:
+          type: boolean
+        rid:
+          type: string
+    AgentConfig:
+      type: string
+      description: Agent configuration file (downloaded as octet-stream)
+    Info:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+        commit:
+          type: string
+        hostname:
+          type: string
+        id:
+          type: string
+        release:
+          type: string
+
+paths:
+  /api/v1/agent:
+    get:
+      summary: List all registered agents
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Agent'
+    post:
+      summary: Register a new agent
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRegistration'
+      responses:
+        '201':
+          description: Agent registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRID'
+        '400':
+          description: Invalid request
+        '409':
+          description: Agent already exists
+
+  /api/v1/agent/{rid}:
+    get:
+      summary: Get agent details
+      security:
+        - basicAuth: []
+      parameters:
+        - name: rid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '404':
+          description: Agent not found
+    delete:
+      summary: Delete/deregister an agent
+      security:
+        - basicAuth: []
+      parameters:
+        - name: rid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Agent deleted
+        '404':
+          description: Agent not found
+
+  /api/v1/agent/{rid}/config:
+    get:
+      summary: Fetch agent configuration file
+      security:
+        - basicAuth: []
+      parameters:
+        - name: rid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent configuration file
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/AgentConfig'
+        '404':
+          description: Agent not found
+
+  /api/v1/info:
+    get:
+      summary: Get Finch server information
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: Finch server info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Info'
+
+security:
+  - basicAuth: []

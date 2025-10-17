@@ -68,7 +68,10 @@ with finchctl.
 ## Further API endpoints
 
 The API provides further endpoints to manage agents, such as listing all
-`/api/v1/agent` and deregister an agent `/api/v1/agent/{rid}`.
+`/api/v1/agent` and deregister an agent `/api/v1/agent/{rid}`. Also a service
+information endpoint `/api/v1/info` is available.
+
+The OpenAPI specification is available at `/openapi.yaml`.
 
 ## Contributing
 
