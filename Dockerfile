@@ -3,9 +3,9 @@ FROM --platform=$BUILDPLATFORM golang:1.24-bookworm AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc-aarch64-linux-gnu libc6-dev-arm64-cross \
     gcc-x86-64-linux-gnu libc6-dev-amd64-cross \
-    make ca-certificates
+    make ca-certificates && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /build
 
 COPY . .
 
@@ -22,13 +22,13 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     fi && \
     make dist GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
-FROM debian:bookworm-slim
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim
 
 ARG TARGETOS
 ARG TARGETARCH
 
-WORKDIR /app
-COPY --from=builder /app/bin/finch-${TARGETOS}-${TARGETARCH} finch
+COPY --from=builder /build/bin/finch-${TARGETOS}-${TARGETARCH} /bin/finch
 EXPOSE 3000
 
-CMD ["./finch", "run", "--server.listen-address", "0.0.0.0:3000", "--stack.config-file", "/var/lib/finch/finch.json"]
+ENTRYPOINT ["/bin/finch"]
+CMD ["run", "--server.listen-address", "0.0.0.0:3000", "--stack.config-file", "/var/lib/finch/finch.json"]
