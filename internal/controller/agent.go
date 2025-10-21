@@ -149,7 +149,7 @@ loki.source.file "file" {
 
 prometheus.remote_write "default" {
 	endpoint {
-		url = "https://{{ .ServiceName }}/prometheus/api/v1/write"
+		url = "https://{{ .ServiceName }}/mimir/api/v1/push"
 
 		basic_auth {
 			username = "{{ .Username }}"
