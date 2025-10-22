@@ -38,6 +38,11 @@ func New(cfgFile string) (Manager, error) {
 		return nil, err
 	}
 
+	prof := profiler.New(cfg, false)
+	if err := prof.Run(); err != nil {
+		slog.Warn("Failed to start Pyroscope profiler", "error", err)
+	}
+
 	db, err := database.New(cfg)
 	if err != nil {
 		return nil, err
@@ -49,11 +54,6 @@ func New(cfgFile string) (Manager, error) {
 
 	model := model.New(db.Connection())
 	ctrl := controller.New(model, cfg)
-
-	prof := profiler.New(cfg, false)
-	if err := prof.Run(); err != nil {
-		slog.Warn("Failed to start Pyroscope profiler", "error", err)
-	}
 
 	return &manager{
 		config:     cfg,

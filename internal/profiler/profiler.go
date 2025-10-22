@@ -6,7 +6,6 @@ package profiler
 
 import (
 	"log/slog"
-	"os"
 	"runtime"
 
 	"github.com/grafana/pyroscope-go"
@@ -37,7 +36,6 @@ func New(config config.Config, logging bool) Profiler {
 		ApplicationName: "finch",
 		ServerAddress:   config.Profiler(),
 		Logger:          logger,
-		Tags:            map[string]string{"hostname": os.Getenv("HOSTNAME")},
 		ProfileTypes: []pyroscope.ProfileType{
 			pyroscope.ProfileCPU,
 			pyroscope.ProfileAllocObjects,
