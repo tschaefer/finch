@@ -15,6 +15,7 @@ import (
 	"github.com/tschaefer/finch/internal/database"
 	"github.com/tschaefer/finch/internal/handler"
 	"github.com/tschaefer/finch/internal/model"
+	"github.com/tschaefer/finch/internal/profiler"
 )
 
 type Manager interface {
@@ -26,6 +27,7 @@ type manager struct {
 	database   database.Database
 	model      model.Model
 	controller controller.Controller
+	profiler   profiler.Profiler
 }
 
 func New(cfgFile string) (Manager, error) {
@@ -48,11 +50,17 @@ func New(cfgFile string) (Manager, error) {
 	model := model.New(db.Connection())
 	ctrl := controller.New(model, cfg)
 
+	prof := profiler.New(cfg, false)
+	if err := prof.Run(); err != nil {
+		slog.Warn("Failed to start Pyroscope profiler", "error", err)
+	}
+
 	return &manager{
 		config:     cfg,
 		database:   db,
 		model:      model,
 		controller: ctrl,
+		profiler:   prof,
 	}, nil
 }
 
