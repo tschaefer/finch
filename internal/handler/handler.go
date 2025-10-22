@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/tschaefer/finch/internal/config"
 	"github.com/tschaefer/finch/internal/controller"
+	"github.com/tschaefer/finch/internal/version"
 )
 
 type Handler interface {
@@ -61,6 +62,10 @@ func (h *handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) makeError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
+	if status != http.StatusUnauthorized {
+		w.Header().Set("X-Finch-Commit", version.Commit())
+		w.Header().Set("X-Finch-Release", version.Release())
+	}
 	w.WriteHeader(status)
 
 	json.NewEncoder(w).Encode(map[string]string{"detail": message})
@@ -68,6 +73,8 @@ func (h *handler) makeError(w http.ResponseWriter, status int, message string) {
 
 func (h *handler) makeResponse(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Finch-Commit", version.Commit())
+	w.Header().Set("X-Finch-Release", version.Release())
 	w.WriteHeader(status)
 
 	if data != nil {

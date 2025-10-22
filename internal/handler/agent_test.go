@@ -117,6 +117,23 @@ func Test_ReturnsError401_Unauthorized(t *testing.T) {
 	assert.Equal(t, "unauthorized", response["detail"], "error message")
 }
 
+func Test_ReturnsInfoHeaders(t *testing.T) {
+	handler := New(&mockController{}, &mockedConfig)
+	assert.NotNil(t, handler, "create handler")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agent", nil)
+	username, password := mockedConfig.Credentials()
+	req.SetBasicAuth(username, password)
+
+	rr := httptest.NewRecorder()
+	handler.Router().ServeHTTP(rr, req)
+
+	assert.EqualValues(t, http.StatusOK, rr.Code, "http status")
+
+	assert.Contains(t, rr.Header(), "X-Finch-Release", "X-Finch-Release header present")
+	assert.Contains(t, rr.Header(), "X-Finch-Commit", "X-Finch-Commit header present")
+}
+
 func Test_CreateAgentSuccess(t *testing.T) {
 	handler := New(&mockController{}, &mockedConfig)
 	assert.NotNil(t, handler, "create handler")
