@@ -12,9 +12,13 @@ import (
 	"github.com/tschaefer/finch/internal/config"
 )
 
+const (
+	defaultServerAddress = "http://pyroscope:4040"
+)
+
 type Profiler interface {
 	Run() error
-	Stop()
+	Stop() error
 }
 
 type profiler struct {
@@ -25,6 +29,11 @@ type profiler struct {
 func New(config config.Config, logging bool) Profiler {
 	slog.Debug("Initializing Pyroscope profiler", "serverAddress", config.Profiler(), "logging", logging)
 
+	serverAddress := config.Profiler()
+	if serverAddress == "" {
+		serverAddress = defaultServerAddress
+	}
+
 	var logger pyroscope.Logger
 	if logging {
 		logger = pyroscope.StandardLogger
@@ -34,7 +43,7 @@ func New(config config.Config, logging bool) Profiler {
 
 	cfg := pyroscope.Config{
 		ApplicationName: "finch",
-		ServerAddress:   config.Profiler(),
+		ServerAddress:   serverAddress,
 		Logger:          logger,
 		ProfileTypes: []pyroscope.ProfileType{
 			pyroscope.ProfileCPU,
@@ -59,14 +68,21 @@ func (p *profiler) Run() error {
 	runtime.SetBlockProfileRate(5)
 
 	profiler, err := pyroscope.Start(p.config)
+	if err != nil {
+		p.instance = nil
+		return err
+	}
 	p.instance = profiler
 
 	return err
 }
 
-func (p *profiler) Stop() {
+func (p *profiler) Stop() error {
 	slog.Debug("Stopping Pyroscope profiler")
-	if p.instance != nil {
-		_ = p.instance.Stop()
+
+	if p.instance == nil {
+		return nil
 	}
+
+	return p.instance.Stop()
 }
