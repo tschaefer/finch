@@ -5,7 +5,7 @@ GOOS   := $(if $(GOOS),$(GOOS),linux)
 GOARCH := $(if $(GOARCH),$(GOARCH),amd64)
 
 .PHONY: all
-all: fmt lint dist
+all: fmt lint test dist
 
 .PHONY: fmt
 fmt:

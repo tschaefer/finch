@@ -34,6 +34,7 @@ type mockConfig struct {
 	version   string
 	hostname  string
 	database  string
+	profiler  string
 	id        string
 	createdAt string
 	library   string
@@ -45,6 +46,7 @@ type mockConfig struct {
 func (m *mockConfig) Version() string               { return m.version }
 func (m *mockConfig) Hostname() string              { return m.hostname }
 func (m *mockConfig) Database() string              { return m.database }
+func (m *mockConfig) Profiler() string              { return m.profiler }
 func (m *mockConfig) Id() string                    { return m.id }
 func (m *mockConfig) CreatedAt() string             { return m.createdAt }
 func (m *mockConfig) Library() string               { return m.library }
@@ -69,15 +71,15 @@ func Test_RegisterAgentReturnsError_BadParameters(t *testing.T) {
 	ctrl := New(model, &mockedConfig)
 	assert.NotNil(t, ctrl, "create controller")
 
-	_, err := ctrl.RegisterAgent("", nil, nil, false)
+	_, err := ctrl.RegisterAgent("", nil, nil, false, false)
 	expected := "hostname must not be empty"
 	assert.EqualError(t, err, expected, "register agent with empty hostname")
 
-	_, err = ctrl.RegisterAgent("test-host", nil, nil, false)
+	_, err = ctrl.RegisterAgent("test-host", nil, nil, false, false)
 	expected = "at least one log source must be specified"
 	assert.EqualError(t, err, expected, "register agent with no log sources")
 
-	_, err = ctrl.RegisterAgent("test-host", nil, []string{"invalid://source"}, false)
+	_, err = ctrl.RegisterAgent("test-host", nil, []string{"invalid://source"}, false, false)
 	expected = "no valid log source specified"
 	assert.EqualError(t, err, expected, "register agent with invalid log source")
 }
@@ -90,7 +92,7 @@ func Test_RegisterAgentReturnsError_InvalidSecret(t *testing.T) {
 	ctrl := New(model, &config)
 	assert.NotNil(t, ctrl, "create controller")
 
-	_, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"journal://"}, false)
+	_, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"journal://"}, false, false)
 	assert.Error(t, err, "register agent with invalid config secret")
 }
 
@@ -100,7 +102,7 @@ func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 	ctrl := New(model, &mockedConfig)
 	assert.NotNil(t, ctrl, "create controller")
 
-	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1", "tag2"}, []string{"file:///var/log/syslog"}, false)
+	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1", "tag2"}, []string{"file:///var/log/syslog"}, false, false)
 	assert.NoError(t, err, "register agent with valid parameters")
 
 	assert.NotEmpty(t, rid, "resource ID not empty")
@@ -131,7 +133,7 @@ func Test_DeregisterAgentReturnsNil(t *testing.T) {
 	ctrl := New(model, &mockedConfig)
 	assert.NotNil(t, ctrl, "create controller")
 
-	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"file:///var/log/syslog"}, false)
+	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"file:///var/log/syslog"}, false, false)
 	assert.NoError(t, err, "register agent with valid parameters")
 
 	err = ctrl.DeregisterAgent(rid)
@@ -155,7 +157,7 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 	ctrl := New(model, &mockedConfig)
 	assert.NotNil(t, ctrl, "create controller")
 
-	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"file:///var/log/syslog"}, false)
+	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"file:///var/log/syslog"}, false, false)
 	assert.NoError(t, err, "register agent with valid parameters")
 
 	config, err := ctrl.CreateAgentConfig(rid)
@@ -180,7 +182,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 	ctrl := New(model, &mockedConfig)
 	assert.NotNil(t, ctrl, "create controller")
 
-	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"file:///var/log/syslog"}, false)
+	rid, err := ctrl.RegisterAgent("test-host", []string{"tag1"}, []string{"file:///var/log/syslog"}, false, false)
 	assert.NoError(t, err, "register agent with valid parameters")
 
 	agent, err := ctrl.GetAgent(rid)
@@ -205,10 +207,10 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 	ctrl := New(model, &mockedConfig)
 	assert.NotNil(t, ctrl, "create controller")
 
-	_, err := ctrl.RegisterAgent("test-host-1", []string{"tag1"}, []string{"file:///var/log/syslog"}, false)
+	_, err := ctrl.RegisterAgent("test-host-1", []string{"tag1"}, []string{"file:///var/log/syslog"}, false, false)
 	assert.NoError(t, err, "register first agent")
 
-	_, err = ctrl.RegisterAgent("test-host-2", []string{"tag2"}, []string{"file:///var/log/syslog"}, false)
+	_, err = ctrl.RegisterAgent("test-host-2", []string{"tag2"}, []string{"file:///var/log/syslog"}, false, false)
 	assert.NoError(t, err, "register second agent")
 
 	agents, err := ctrl.ListAgents()

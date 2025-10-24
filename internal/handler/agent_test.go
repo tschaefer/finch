@@ -16,6 +16,7 @@ type mockConfig struct {
 	version   string
 	hostname  string
 	database  string
+	profiler  string
 	id        string
 	createdAt string
 	library   string
@@ -27,6 +28,7 @@ type mockConfig struct {
 func (m *mockConfig) Version() string               { return m.version }
 func (m *mockConfig) Hostname() string              { return m.hostname }
 func (m *mockConfig) Database() string              { return m.database }
+func (m *mockConfig) Profiler() string              { return m.profiler }
 func (m *mockConfig) Id() string                    { return m.id }
 func (m *mockConfig) CreatedAt() string             { return m.createdAt }
 func (m *mockConfig) Library() string               { return m.library }
@@ -37,6 +39,7 @@ var mockedConfig = mockConfig{
 	version:   "1.0.0",
 	hostname:  "localhost",
 	database:  "test.db",
+	profiler:  "http://localhost:4040",
 	id:        "test-id",
 	createdAt: "2025-01-01T00:00:00Z",
 	library:   "test-library",
@@ -47,7 +50,7 @@ var mockedConfig = mockConfig{
 
 type mockController struct{}
 
-func (m *mockController) RegisterAgent(hostname string, tags, logSources []string, metrics bool) (string, error) {
+func (m *mockController) RegisterAgent(hostname string, tags, logSources []string, metrics bool, profiles bool) (string, error) {
 	return "rid:12345", nil
 }
 func (m *mockController) DeregisterAgent(rid string) error {
