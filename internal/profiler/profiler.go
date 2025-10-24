@@ -17,7 +17,7 @@ const (
 )
 
 type Profiler interface {
-	Run() error
+	Start() error
 	Stop() error
 }
 
@@ -61,7 +61,7 @@ func New(config config.Config, logging bool) Profiler {
 	return &profiler{config: cfg}
 }
 
-func (p *profiler) Run() error {
+func (p *profiler) Start() error {
 	slog.Debug("Starting Pyroscope profiler", "config", p.config)
 
 	runtime.SetMutexProfileFraction(5)
@@ -74,7 +74,7 @@ func (p *profiler) Run() error {
 	}
 	p.instance = profiler
 
-	return err
+	return nil
 }
 
 func (p *profiler) Stop() error {
