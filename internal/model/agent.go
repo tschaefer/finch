@@ -20,6 +20,7 @@ type Agent struct {
 	LastSeen     *time.Time `gorm:"default:NULL" json:"last_seen"`
 	LogSources   []string   `gorm:"not null;serializer:json" json:"log_sources"`
 	Metrics      bool       `gorm:"not null;default:false" json:"metrics"`
+	Profiles     bool       `gorm:"not null;default:false" json:"profiles"`
 	Password     string     `gorm:"not null" json:"-"`
 	PasswordHash string     `gorm:"not null" json:"-"`
 	RegisteredAt time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP" json:"registered_at"`

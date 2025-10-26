@@ -36,6 +36,9 @@ components:
         metrics:
           type: boolean
           example: true
+        profiles:
+          type: boolean
+          example: true
     AgentRID:
       type: object
       properties:

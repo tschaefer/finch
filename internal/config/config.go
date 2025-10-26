@@ -17,6 +17,7 @@ import (
 type Data struct {
 	CreatedAt   string `json:"created_at"`
 	Database    string `json:"database"`
+	Profiler    string `json:"profiler"`
 	Hostname    string `json:"hostname"`
 	Id          string `json:"id"`
 	Secret      string `json:"secret"`
@@ -30,6 +31,7 @@ type Data struct {
 type Config interface {
 	CreatedAt() string
 	Database() string
+	Profiler() string
 	Hostname() string
 	Id() string
 	Library() string
@@ -73,6 +75,10 @@ func (c *config) Hostname() string {
 
 func (c *config) Database() string {
 	return c.data.Database
+}
+
+func (c *config) Profiler() string {
+	return c.data.Profiler
 }
 
 func (c *config) Id() string {
