@@ -63,12 +63,6 @@ The downloaded configuration file can be used to
 [enroll the agent](https://github.com/tschaefer/finchctl?tab=readme-ov-file#enrolling-an-observability-agent)
 with finchctl.
 
-## Profiling Data Support
-
-Finch supports agent configuration for profiling data collection using Pyroscope.
-Agents can be configured to forward profiling data (CPU, memory, etc.) via
-Alloy's Pyroscope HTTP receiver, typically available at `http://localhost:4040`.
-
 ## Further API Endpoints
 
 Additional API endpoints are available for agent management:

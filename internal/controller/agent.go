@@ -178,6 +178,14 @@ prometheus.scrape "node" {
 	forward_to      = [prometheus.remote_write.default.receiver]
 	scrape_interval = "15s"
 }
+
+prometheus.receive_http "default" {
+	http {
+		listen_address = "127.0.0.1"
+		listen_port = 9091
+	}
+	forward_to = [prometheus.remote_write.default.receiver]
+}
 {{ end -}}
 
 {{ if .Profiles }}
