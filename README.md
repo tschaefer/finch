@@ -1,84 +1,91 @@
-# The Minimal Logging Infrastructure
+# The Minimal Observability Infrastructure
 
-finch is the management service to register logging agents and provide the
-related configuration. It is designed to be minimal and easy to use.
+**Finch** is the management service for registering observability agents and
+providing related configuration. It is designed to be minimal and easy to use.
 
-The minimal logging stack bases on Docker and consists of following
-services:
+The minimal observability stack is based on Docker and consists of the
+following services:
 
-- **Grafana** - The visualization tool
-- **Loki** - The log aggregation system
-- **Alloy** - The log shipping agent
-- **Prometheus** - The monitoring system
-- **Traefik** - The reverse proxy
-- **Finch** - The log agent manager
+- **Grafana** – Visualization and dashboards
+- **Loki** – Log aggregation system
+- **Mimir** – Metrics backend
+- **Pyroscope** – Profiling data aggregation and visualization
+- **Alloy** – Client-side agent for logs, metrics, and profiling data
+- **Traefik** – Reverse proxy and TLS termination
+- **Finch** – Agent manager
 
-Consider to read the [Blog post](https://blog.tschaefer.org/posts/2025/08/17/finch-a-minimal-logging-stack/)
-for motivation and a walkthrough before using this tool.
+See the [Blog post](https://blog.tschaefer.org/posts/2025/08/17/finch-a-minimal-logging-stack/)
+for background, motivation, and a walkthrough before you get started.
 
-For deployment please follow the instructions in the [finchctl
-repository](https://github.com/tschaefer/finchctl).
+For deployment instructions, please refer to the [finchctl repository](https://github.com/tschaefer/finchctl).
 
-## Register logging agent
+## Registering an Observability Agent
 
-finch provides a REST API to manage logging agents. The API is guarded by
-basic authentication. The credentials are provided while the stack deployment.
+Finch provides a REST API to manage agents. The API is protected by basic
+authentication; credentials are provided during stack deployment.
 
-The typical workflow is to register a new agent.
+To register a new agent, supply a hostname and at least one log source.
+Supported log sources include:
 
-Providing a hostname and at least one log source is required. The log source
-can be one of
-
-- `journal://` - Read logs from the systemd journal.
-- `docker://` - Read logs from the Docker daemon.
-- `file://var/log/*.log` - Read logs from a file or a file pattern.
+- `journal://` – Read logs from the systemd journal
+- `docker://` – Read logs from the Docker daemon
+- `file://var/log/*.log` – Read logs from files or file patterns
 
 File sources can be specified multiple times.
 
-Optionally you can specify a list of `tags` to identify the agent and enable
-metrics collection.
+You may also specify `tags` to identify the agent and enable metrics or
+profiling collection.
+
+Example request:
 
 ```bash
 curl -u admin:admin -X POST \
   -H "Content-Type: application/json" \
-  -d '{"hostname": "app.example.com", "log_sources": ["journal://"], "metrics": true }' \
+  -d '{"hostname": "app.example.com", "log_sources": ["journal://"], "metrics": true, "profiling": true }' \
   https://finch.example.com/api/v1/agent
 
-  {"rid":"rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}
+{"rid":"rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}
 ```
 
-On success the API returns a resource ID (rid) of the created agent.
+On success, the API returns a resource ID (`rid`) of the created agent.
 
-## Fetch agent configuration
+## Fetching Agent Configuration
 
-To fetch the configuration for a specific agent, you can use the resource ID
-provided by the previous step.
+To fetch the configuration for a specific agent, use the resource ID returned earlier:
 
 ```bash
 curl -u admin:admin \
   https://finch.example.com/api/v1/agent/rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4/config \
     -o agent.cfg
-
 ```
 
-The downloaded configuration file can be used to [enroll the
-agent](https://github.com/tschaefer/finchctl?tab=readme-ov-file#enrolling-a-logging-agent)
+The downloaded configuration file can be used to
+[enroll the agent](https://github.com/tschaefer/finchctl?tab=readme-ov-file#enrolling-an-observability-agent)
 with finchctl.
 
-## Further API endpoints
+## Profiling Data Support
 
-The API provides further endpoints to manage agents, such as listing all
-`/api/v1/agent` and deregister an agent `/api/v1/agent/{rid}`. Also a service
-information endpoint `/api/v1/info` is available.
+Finch supports agent configuration for profiling data collection using Pyroscope.
+Agents can be configured to forward profiling data (CPU, memory, etc.) via
+Alloy's Pyroscope HTTP receiver, typically available at `http://localhost:4040`.
+
+## Further API Endpoints
+
+Additional API endpoints are available for agent management:
+
+- List all agents: `/api/v1/agent`
+- Deregister an agent: `/api/v1/agent/{rid}`
+- Service info: `/api/v1/info`
 
 The OpenAPI specification is available at `/openapi.yaml`.
 
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request.
-For major changes, open an issue first to discuss what you would like to change.
+For major changes, open an issue first to discuss your proposal.
 
-Ensure that your code adheres to the existing style and includes appropriate tests.
+Ensure that your code adheres to the existing style and includes appropriate
+tests.
 
 ## License
 
