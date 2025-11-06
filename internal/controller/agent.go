@@ -29,8 +29,17 @@ var (
 	ErrAgentAlreadyExists = errors.New("agent already exists")
 )
 
+type Agent struct {
+	Hostname       string   `json:"hostname"`
+	Tags           []string `json:"tags"`
+	LogSources     []string `json:"log_sources"`
+	Metrics        bool     `json:"metrics"`
+	MetricsTargets []string `json:"metrics_targets"`
+	Profiles       bool     `json:"profiles"`
+}
+
 type ControllerAgent interface {
-	RegisterAgent(hostname string, tags, logSources []string, metrics bool, profiles bool) (string, error)
+	RegisterAgent(agent *Agent) (string, error)
 	DeregisterAgent(rid string) error
 	CreateAgentConfig(rid string) ([]byte, error)
 	ListAgents() ([]map[string]string, error)
@@ -186,6 +195,19 @@ prometheus.receive_http "default" {
 	}
 	forward_to = [prometheus.remote_write.default.receiver]
 }
+
+{{ if .MetricsTargets }}
+{{ range $index, $source := .MetricsTargets }}
+prometheus.scrape "custom_{{ $index }}" {
+	targets    = [{"__address__" = "{{ $source.Address }}"}]
+	forward_to = [prometheus.remote_write.default.receiver]
+	scrape_interval = "15s"
+	{{ if $source.MetricsPath }}
+	metrics_path = "{{ $source.MetricsPath }}"
+	{{- end }}
+}
+{{ end -}}
+{{ end -}}
 {{ end -}}
 
 {{ if .Profiles }}
@@ -233,15 +255,15 @@ http:
 {{- end }}
 `
 
-func (c *controller) RegisterAgent(hostname string, tags, logSources []string, Metrics bool, Profiles bool) (string, error) {
-	slog.Debug("Register Agent", "hostname", hostname, "tags", tags, "logSources", logSources, "metrics", Metrics, "profiles", Profiles)
+func (c *controller) RegisterAgent(data *Agent) (string, error) {
+	slog.Debug("Register Agent", "data", fmt.Sprintf("%+v", data))
 
-	agent, err := c.marshalAgent(hostname, tags, logSources, Metrics, Profiles)
+	agent, err := c.marshalAgent(data)
 	if err != nil {
 		return "", err
 	}
 
-	exists, err := c.model.GetAgent(&model.Agent{Hostname: hostname})
+	exists, err := c.model.GetAgent(&model.Agent{Hostname: data.Hostname})
 	if err != nil && !errors.Is(err, model.ErrAgentNotFound) {
 		return "", err
 	}
@@ -319,7 +341,11 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 			Docker  bool
 			Files   []string
 		}
-		Metrics  bool
+		Metrics        bool
+		MetricsTargets []struct {
+			Address     string
+			MetricsPath string
+		}
 		Profiles bool
 	}{
 		Hostname:    agent.Hostname,
@@ -336,7 +362,11 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 			Docker:  false,
 			Files:   make([]string, 0),
 		},
-		Metrics:  agent.Metrics,
+		Metrics: agent.Metrics,
+		MetricsTargets: make([]struct {
+			Address     string
+			MetricsPath string
+		}, 0),
 		Profiles: agent.Profiles,
 	}
 
@@ -353,10 +383,25 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 			data.LogSources.Docker = true
 		case "file":
 			files = append(files, fmt.Sprintf("{__path__ = \"%s\"}", uri.Path))
-			data.LogSources.Files = files // fmt.Sprintf("[%s,]", strings.Join(files, ", "))
+			data.LogSources.Files = files
 		default:
 			continue
 		}
+	}
+
+	for _, source := range agent.MetricsTargets {
+		uri, err := url.Parse(source)
+		if err != nil {
+			continue
+		}
+		entry := struct {
+			Address     string
+			MetricsPath string
+		}{
+			Address:     uri.Host,
+			MetricsPath: uri.Path,
+		}
+		data.MetricsTargets = append(data.MetricsTargets, entry)
 	}
 
 	buf := new(bytes.Buffer)
@@ -408,17 +453,17 @@ func (c *controller) GetAgent(rid string) (*model.Agent, error) {
 	return agent, nil
 }
 
-func (c *controller) marshalAgent(hostname string, tags, logSources []string, metrics bool, profiles bool) (*model.Agent, error) {
-	if hostname == "" {
+func (c *controller) marshalAgent(data *Agent) (*model.Agent, error) {
+	if data.Hostname == "" {
 		return nil, fmt.Errorf("hostname must not be empty")
 	}
 
-	if len(logSources) == 0 {
+	if len(data.LogSources) == 0 {
 		return nil, fmt.Errorf("at least one log source must be specified")
 	}
 
 	var effectiveLogSources []string
-	for _, logSource := range logSources {
+	for _, logSource := range data.LogSources {
 		uri, err := url.Parse(logSource)
 		if err != nil {
 			continue
@@ -434,6 +479,15 @@ func (c *controller) marshalAgent(hostname string, tags, logSources []string, me
 		return nil, fmt.Errorf("no valid log source specified")
 	}
 
+	var effectiveMetricsTargets []string
+	for _, metricsTarget := range data.MetricsTargets {
+		uri, err := url.Parse(metricsTarget)
+		if err != nil {
+			continue
+		}
+		effectiveMetricsTargets = append(effectiveMetricsTargets, uri.String())
+	}
+
 	password := rand.Text()
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -445,15 +499,16 @@ func (c *controller) marshalAgent(hostname string, tags, logSources []string, me
 	}
 
 	agent := &model.Agent{
-		Hostname:     hostname,
-		LogSources:   effectiveLogSources,
-		Metrics:      metrics,
-		Profiles:     profiles,
-		Tags:         tags,
-		ResourceId:   fmt.Sprintf("rid:finch:%s:agent:%s", c.config.Id(), uuid.New().String()),
-		Username:     rand.Text(),
-		Password:     password,
-		PasswordHash: string(hash),
+		Hostname:       data.Hostname,
+		LogSources:     effectiveLogSources,
+		Metrics:        data.Metrics,
+		MetricsTargets: effectiveMetricsTargets,
+		Profiles:       data.Profiles,
+		Tags:           data.Tags,
+		ResourceId:     fmt.Sprintf("rid:finch:%s:agent:%s", c.config.Id(), uuid.New().String()),
+		Username:       rand.Text(),
+		Password:       password,
+		PasswordHash:   string(hash),
 	}
 
 	return agent, nil

@@ -36,6 +36,11 @@ components:
         metrics:
           type: boolean
           example: true
+        metrics_targets:
+          type: array
+          items:
+            type: string
+          example: ["http://localhost:9100/metrics"]
         profiles:
           type: boolean
           example: true
