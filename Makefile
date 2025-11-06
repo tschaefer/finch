@@ -17,7 +17,7 @@ lint:
 
 .PHONY: test
 test:
-	test -z $(shell go test -v ./... 2>&1 >/dev/null || echo 1) || (echo "[WARN] Fix test issues" && exit 1)
+	test -z $(shell go test ./... >/dev/null 2>&1 || echo 1) || (echo "[WARN] Fix test issues" && exit 1)
 
 .PHONY: dist
 dist:
