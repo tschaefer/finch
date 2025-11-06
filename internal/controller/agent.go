@@ -485,6 +485,12 @@ func (c *controller) marshalAgent(data *Agent) (*model.Agent, error) {
 		if err != nil {
 			continue
 		}
+		if !slices.Contains([]string{"http", "https"}, uri.Scheme) {
+			continue
+		}
+		if uri.Host == "" {
+			continue
+		}
 		effectiveMetricsTargets = append(effectiveMetricsTargets, uri.String())
 	}
 
