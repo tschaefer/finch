@@ -1,4 +1,4 @@
-# The Minimal Observability Infrastructure
+# The Minimal Observability Infrastructure [![Go Report Card](https://goreportcard.com/badge/github.com/tschaefer/finch)](https://goreportcard.com/report/github.com/tschaefer/finch)
 
 **Finch** is the management service for registering observability agents and
 providing related configuration. It is designed to be minimal and easy to use.
