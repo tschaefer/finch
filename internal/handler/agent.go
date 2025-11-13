@@ -26,14 +26,7 @@ func (h *handler) registerAgentHandlers() {
 }
 
 func (h *handler) CreateAgent(w http.ResponseWriter, r *http.Request) {
-	type payload struct {
-		Hostname   string   `json:"hostname"`
-		Tags       []string `json:"tags"`
-		LogSources []string `json:"log_sources"`
-		Metrics    bool     `json:"metrics"`
-		Profiles   bool     `json:"profiles"`
-	}
-	var p payload
+	var p controller.Agent
 
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		go h.makeLog(r, http.StatusBadRequest, slog.LevelError, "invalid request body")
@@ -41,7 +34,7 @@ func (h *handler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rid, err := h.controller.RegisterAgent(p.Hostname, p.Tags, p.LogSources, p.Metrics, p.Profiles)
+	rid, err := h.controller.RegisterAgent(&p)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, controller.ErrAgentAlreadyExists) {
