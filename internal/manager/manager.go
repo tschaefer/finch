@@ -16,6 +16,7 @@ import (
 	"github.com/tschaefer/finch/internal/handler"
 	"github.com/tschaefer/finch/internal/model"
 	"github.com/tschaefer/finch/internal/profiler"
+	"github.com/tschaefer/finch/internal/version"
 )
 
 type Manager interface {
@@ -77,7 +78,7 @@ func (m *manager) Run(listenAddr string) {
 		Handler:      router,
 	}
 
-	slog.Info("Starting Finch management server")
+	slog.Info("Starting Finch management server.", "release", version.Release(), "commit", version.Commit())
 	slog.Info("Listening on " + listenAddr)
 	if err := server.ListenAndServe(); err != nil {
 		slog.Error("Error starting server: " + err.Error())
