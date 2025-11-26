@@ -61,6 +61,14 @@ loki.write "default" {
 	}
 }
 
+loki.source.api "default" {
+	http {
+		listen_address = "127.0.0.1"
+		listen_port = "3100"
+	}
+	forward_to = [loki.write.default.receiver]
+}
+
 {{ if .LogSources.Journal -}}
 loki.relabel "journal" {
 	forward_to = []
