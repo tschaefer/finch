@@ -12,21 +12,22 @@ import (
 )
 
 type Agent struct {
-	ID           uint       `gorm:"primarykey" json:"-"`
-	CreatedAt    time.Time  `json:"-"`
-	UpdatedAt    time.Time  `json:"-"`
-	Active       bool       `gorm:"not null;default:true" json:"active"`
-	Hostname     string     `gorm:"not null;unique" json:"hostname"`
-	LastSeen     *time.Time `gorm:"default:NULL" json:"last_seen"`
-	LogSources   []string   `gorm:"not null;serializer:json" json:"log_sources"`
-	Metrics      bool       `gorm:"not null;default:false" json:"metrics"`
-	Profiles     bool       `gorm:"not null;default:false" json:"profiles"`
-	Password     string     `gorm:"not null" json:"-"`
-	PasswordHash string     `gorm:"not null" json:"-"`
-	RegisteredAt time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP" json:"registered_at"`
-	ResourceId   string     `gorm:"not null;unique;uniqueIndex:uidx_agents_resource_id" json:"resource_id"`
-	Tags         []string   `gorm:"serializer:json" json:"tags"`
-	Username     string     `gorm:"not null" json:"-"`
+	ID             uint       `gorm:"primarykey" json:"-"`
+	CreatedAt      time.Time  `json:"-"`
+	UpdatedAt      time.Time  `json:"-"`
+	Active         bool       `gorm:"not null;default:true" json:"active"`
+	Hostname       string     `gorm:"not null;unique" json:"hostname"`
+	LastSeen       *time.Time `gorm:"default:NULL" json:"last_seen"`
+	LogSources     []string   `gorm:"not null;default:'[]';serializer:json" json:"log_sources"`
+	Metrics        bool       `gorm:"not null;default:false" json:"metrics"`
+	MetricsTargets []string   `gorm:"not null;default:'[]';serializer:json" json:"metrics_targets"`
+	Profiles       bool       `gorm:"not null;default:false" json:"profiles"`
+	Password       string     `gorm:"not null" json:"-"`
+	PasswordHash   string     `gorm:"not null" json:"-"`
+	RegisteredAt   time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP" json:"registered_at"`
+	ResourceId     string     `gorm:"not null;unique;uniqueIndex:uidx_agents_resource_id" json:"resource_id"`
+	Tags           []string   `gorm:"serializer:json" json:"tags"`
+	Username       string     `gorm:"not null" json:"-"`
 }
 
 type ModelAgent interface {
