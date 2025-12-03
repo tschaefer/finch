@@ -19,10 +19,21 @@ for background, motivation, and a walkthrough before you get started.
 
 For deployment instructions, please refer to the [finchctl repository](https://github.com/tschaefer/finchctl).
 
-## Registering an Observability Agent
+## gRPC API
 
-Finch provides a REST API to manage agents. The API is protected by basic
-authentication; credentials are provided during stack deployment.
+Finch provides a gRPC API with two services:
+
+- **AgentService** – Manages observability agents
+- **InfoService** – Provides service information
+
+The API is protected by basic authentication; credentials are provided during stack deployment.
+
+### Using grpcurl
+
+[grpcurl](https://github.com/fullstorydev/grpcurl) is a command-line tool for
+interacting with gRPC servers.
+
+**Register a new agent:**
 
 To register a new agent, supply a hostname and at least one log source.
 Supported log sources include:
@@ -31,47 +42,91 @@ Supported log sources include:
 - `docker://` – Read logs from the Docker daemon
 - `file://var/log/*.log` – Read logs from files or file patterns
 
-File sources can be specified multiple times.
-
-You may also specify `tags` to identify the agent and enable metrics or
-profiling collection.
-
-Example request:
+File sources can be specified multiple times. You may also specify `tags` to
+identify the agent and enable metrics or profiling collection.
 
 ```bash
-curl -u admin:admin -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"hostname": "app.example.com", "log_sources": ["journal://"], "metrics": true, "profiling": true }' \
-  https://finch.example.com/api/v1/agent
-
-{"rid":"rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}
+grpcurl \
+  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  -d '{
+    "hostname": "app.example.com",
+    "log_sources": ["journal://"],
+    "metrics": true,
+    "profiles": true
+  }' \
+  finch.example.com:443 \
+  finch.AgentService/RegisterAgent
 ```
 
-On success, the API returns a resource ID (`rid`) of the created agent.
+Response:
+```json
+{
+  "rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"
+}
+```
 
-## Fetching Agent Configuration
-
-To fetch the configuration for a specific agent, use the resource ID returned earlier:
+**List all agents:**
 
 ```bash
-curl -u admin:admin \
-  https://finch.example.com/api/v1/agent/rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4/config \
-    -o agent.cfg
+grpcurl \
+  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  finch.example.com:443 \
+  finch.AgentService/ListAgents
+```
+
+**Get agent details:**
+
+```bash
+grpcurl \
+  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  -d '{"rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}' \
+  finch.example.com:443 \
+  finch.AgentService/GetAgent
+```
+
+**Get agent configuration:**
+
+```bash
+grpcurl \
+  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  -d '{"rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}' \
+  finch.example.com:443 \
+  finch.AgentService/GetAgentConfig > agent.cfg
 ```
 
 The downloaded configuration file can be used to
 [enroll the agent](https://github.com/tschaefer/finchctl?tab=readme-ov-file#enrolling-an-observability-agent)
 with finchctl.
 
-## Further API Endpoints
+**Deregister an agent:**
 
-Additional API endpoints are available for agent management:
+```bash
+grpcurl \
+  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  -d '{"rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}' \
+  finch.example.com:443 \
+  finch.AgentService/DeregisterAgent
+```
 
-- List all agents: `/api/v1/agent`
-- Deregister an agent: `/api/v1/agent/{rid}`
-- Service info: `/api/v1/info`
+**Get service info:**
 
-The OpenAPI specification is available at `/openapi.yaml`.
+```bash
+grpcurl \
+  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  finch.example.com:443 \
+  finch.InfoService/GetServiceInfo
+```
+
+### Testing locally
+
+For local testing without TLS, use the `-plaintext` flag:
+
+```bash
+grpcurl -plaintext \
+  -H "authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  127.0.0.1:9090 \
+  finch.InfoService/GetServiceInfo
+```
 
 ## Contributing
 
