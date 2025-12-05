@@ -45,8 +45,6 @@ func NewInfoServer(cfg config.Config) *InfoServer {
 }
 
 func (s *AgentServer) RegisterAgent(ctx context.Context, req *api.RegisterAgentRequest) (*api.RegisterAgentResponse, error) {
-	slog.Debug("gRPC RegisterAgent", "hostname", req.Hostname)
-
 	agent := &controller.Agent{
 		Hostname:       req.Hostname,
 		Tags:           req.Tags,
@@ -68,8 +66,6 @@ func (s *AgentServer) RegisterAgent(ctx context.Context, req *api.RegisterAgentR
 }
 
 func (s *AgentServer) DeregisterAgent(ctx context.Context, req *api.DeregisterAgentRequest) (*api.DeregisterAgentResponse, error) {
-	slog.Debug("gRPC DeregisterAgent", "rid", req.Rid)
-
 	err := s.controller.DeregisterAgent(req.Rid)
 	if err != nil {
 		if errors.Is(err, controller.ErrAgentNotFound) {
@@ -82,8 +78,6 @@ func (s *AgentServer) DeregisterAgent(ctx context.Context, req *api.DeregisterAg
 }
 
 func (s *AgentServer) GetAgent(ctx context.Context, req *api.GetAgentRequest) (*api.GetAgentResponse, error) {
-	slog.Debug("gRPC GetAgent", "rid", req.Rid)
-
 	agent, err := s.controller.GetAgent(req.Rid)
 	if err != nil {
 		if errors.Is(err, controller.ErrAgentNotFound) {
@@ -108,8 +102,6 @@ func (s *AgentServer) GetAgent(ctx context.Context, req *api.GetAgentRequest) (*
 }
 
 func (s *AgentServer) ListAgents(ctx context.Context, req *api.ListAgentsRequest) (*api.ListAgentsResponse, error) {
-	slog.Debug("gRPC ListAgents")
-
 	agentList, err := s.controller.ListAgents()
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -127,8 +119,6 @@ func (s *AgentServer) ListAgents(ctx context.Context, req *api.ListAgentsRequest
 }
 
 func (s *AgentServer) GetAgentConfig(ctx context.Context, req *api.GetAgentConfigRequest) (*api.GetAgentConfigResponse, error) {
-	slog.Debug("gRPC GetAgentConfig", "rid", req.Rid)
-
 	config, err := s.controller.CreateAgentConfig(req.Rid)
 	if err != nil {
 		if errors.Is(err, controller.ErrAgentNotFound) {
@@ -141,8 +131,6 @@ func (s *AgentServer) GetAgentConfig(ctx context.Context, req *api.GetAgentConfi
 }
 
 func (s *InfoServer) GetServiceInfo(ctx context.Context, req *api.GetServiceInfoRequest) (*api.GetServiceInfoResponse, error) {
-	slog.Debug("gRPC GetServiceInfo")
-
 	return &api.GetServiceInfoResponse{
 		Id:        s.config.Id(),
 		Hostname:  s.config.Hostname(),
