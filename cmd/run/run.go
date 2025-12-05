@@ -16,7 +16,7 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	Cmd.Flags().StringP("server.listen-address", "", "127.0.0.1:3000", "Address to listen on for gRPC traffic")
+	Cmd.Flags().StringP("server.listen-address", "", "127.0.0.1:3000", "Address to listen on for traffic")
 	Cmd.Flags().StringP("server.log-level", "", "info", "Log level (debug, info, warn, error)")
 	Cmd.Flags().StringP("server.log-format", "", "structured", "Log format (structured, json)")
 	Cmd.Flags().StringP("stack.config-file", "", "/var/lib/finch/finch.json", "Config file of the stack")
@@ -26,7 +26,7 @@ func init() {
 }
 
 func runCmd(cmd *cobra.Command, args []string) {
-	listenAddr, _ := cmd.Flags().GetString("server.listen-address")
+	listen, _ := cmd.Flags().GetString("server.listen-address")
 	config, _ := cmd.Flags().GetString("stack.config-file")
 	logLevel, _ := cmd.Flags().GetString("server.log-level")
 	logFormat, _ := cmd.Flags().GetString("server.log-format")
@@ -36,5 +36,5 @@ func runCmd(cmd *cobra.Command, args []string) {
 	manager, err := manager.New(config)
 	cobra.CheckErr(err)
 
-	manager.Run(listenAddr)
+	manager.Run(listen)
 }
