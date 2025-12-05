@@ -17,19 +17,16 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// AuthInterceptor provides basic authentication for gRPC requests
 type AuthInterceptor struct {
 	config config.Config
 }
 
-// NewAuthInterceptor creates a new auth interceptor
 func NewAuthInterceptor(cfg config.Config) *AuthInterceptor {
 	return &AuthInterceptor{
 		config: cfg,
 	}
 }
 
-// Unary returns a server interceptor function to authenticate unary RPC
 func (a *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -44,7 +41,6 @@ func (a *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 	}
 }
 
-// authenticate validates the basic auth credentials
 func (a *AuthInterceptor) authenticate(ctx context.Context) error {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
