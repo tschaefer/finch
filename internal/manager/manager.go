@@ -24,7 +24,7 @@ import (
 )
 
 type Manager interface {
-	Run(grpcAddr string)
+	Run(listenAddr string)
 }
 
 type manager struct {
