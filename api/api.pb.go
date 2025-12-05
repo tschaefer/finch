@@ -282,10 +282,7 @@ type GetAgentResponse struct {
 	Metrics        bool                   `protobuf:"varint,5,opt,name=metrics,proto3" json:"metrics,omitempty"`
 	MetricsTargets []string               `protobuf:"bytes,6,rep,name=metrics_targets,json=metricsTargets,proto3" json:"metrics_targets,omitempty"`
 	Profiles       bool                   `protobuf:"varint,7,opt,name=profiles,proto3" json:"profiles,omitempty"`
-	Username       string                 `protobuf:"bytes,8,opt,name=username,proto3" json:"username,omitempty"`
-	Password       string                 `protobuf:"bytes,9,opt,name=password,proto3" json:"password,omitempty"`
-	PasswordHash   string                 `protobuf:"bytes,10,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
-	CreatedAt      string                 `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedAt      string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -367,27 +364,6 @@ func (x *GetAgentResponse) GetProfiles() bool {
 		return x.Profiles
 	}
 	return false
-}
-
-func (x *GetAgentResponse) GetUsername() string {
-	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
-func (x *GetAgentResponse) GetPassword() string {
-	if x != nil {
-		return x.Password
-	}
-	return ""
-}
-
-func (x *GetAgentResponse) GetPasswordHash() string {
-	if x != nil {
-		return x.PasswordHash
-	}
-	return ""
 }
 
 func (x *GetAgentResponse) GetCreatedAt() string {
@@ -748,7 +724,7 @@ const file_api_api_proto_rawDesc = "" +
 	"\x03rid\x18\x01 \x01(\tR\x03rid\"\x19\n" +
 	"\x17DeregisterAgentResponse\"#\n" +
 	"\x0fGetAgentRequest\x12\x10\n" +
-	"\x03rid\x18\x01 \x01(\tR\x03rid\"\xdf\x02\n" +
+	"\x03rid\x18\x01 \x01(\tR\x03rid\"\x82\x02\n" +
 	"\x10GetAgentResponse\x12\x1f\n" +
 	"\vresource_id\x18\x01 \x01(\tR\n" +
 	"resourceId\x12\x1a\n" +
@@ -758,13 +734,9 @@ const file_api_api_proto_rawDesc = "" +
 	"logSources\x12\x18\n" +
 	"\ametrics\x18\x05 \x01(\bR\ametrics\x12'\n" +
 	"\x0fmetrics_targets\x18\x06 \x03(\tR\x0emetricsTargets\x12\x1a\n" +
-	"\bprofiles\x18\a \x01(\bR\bprofiles\x12\x1a\n" +
-	"\busername\x18\b \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\t \x01(\tR\bpassword\x12#\n" +
-	"\rpassword_hash\x18\n" +
-	" \x01(\tR\fpasswordHash\x12\x1d\n" +
+	"\bprofiles\x18\a \x01(\bR\bprofiles\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\v \x01(\tR\tcreatedAt\"\x13\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\"\x13\n" +
 	"\x11ListAgentsRequest\"=\n" +
 	"\rAgentListItem\x12\x10\n" +
 	"\x03rid\x18\x01 \x01(\tR\x03rid\x12\x1a\n" +
