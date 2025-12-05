@@ -78,6 +78,10 @@ func (s *AgentServer) DeregisterAgent(ctx context.Context, req *api.DeregisterAg
 }
 
 func (s *AgentServer) GetAgent(ctx context.Context, req *api.GetAgentRequest) (*api.GetAgentResponse, error) {
+	if req.Rid == "" {
+		return nil, status.Error(codes.InvalidArgument, "resource ID is required")
+	}
+
 	agent, err := s.controller.GetAgent(req.Rid)
 	if err != nil {
 		if errors.Is(err, controller.ErrAgentNotFound) {
@@ -94,9 +98,6 @@ func (s *AgentServer) GetAgent(ctx context.Context, req *api.GetAgentRequest) (*
 		Metrics:        agent.Metrics,
 		MetricsTargets: agent.MetricsTargets,
 		Profiles:       agent.Profiles,
-		Username:       agent.Username,
-		Password:       agent.Password,
-		PasswordHash:   agent.PasswordHash,
 		CreatedAt:      agent.CreatedAt.Format(time.RFC3339),
 	}, nil
 }
@@ -119,6 +120,10 @@ func (s *AgentServer) ListAgents(ctx context.Context, req *api.ListAgentsRequest
 }
 
 func (s *AgentServer) GetAgentConfig(ctx context.Context, req *api.GetAgentConfigRequest) (*api.GetAgentConfigResponse, error) {
+	if req.Rid == "" {
+		return nil, status.Error(codes.InvalidArgument, "resource ID is required")
+	}
+
 	config, err := s.controller.CreateAgentConfig(req.Rid)
 	if err != nil {
 		if errors.Is(err, controller.ErrAgentNotFound) {
