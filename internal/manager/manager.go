@@ -6,17 +6,21 @@ package manager
 
 import (
 	"log/slog"
-	"net/http"
+	"net"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
 
+	"github.com/tschaefer/finch/api"
 	"github.com/tschaefer/finch/internal/config"
 	"github.com/tschaefer/finch/internal/controller"
 	"github.com/tschaefer/finch/internal/database"
-	"github.com/tschaefer/finch/internal/handler"
+	grpcserver "github.com/tschaefer/finch/internal/grpc"
 	"github.com/tschaefer/finch/internal/model"
 	"github.com/tschaefer/finch/internal/profiler"
 	"github.com/tschaefer/finch/internal/version"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 type Manager interface {
@@ -68,20 +72,51 @@ func New(cfgFile string) (Manager, error) {
 func (m *manager) Run(listenAddr string) {
 	slog.Debug("Running Manager", "listenAddr", listenAddr)
 
-	router := handler.New(m.controller, m.config).Router()
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
-	server := &http.Server{
-		Addr:         listenAddr,
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler:      router,
-	}
-
-	slog.Info("Starting Finch management server.", "release", version.Release(), "commit", version.Commit())
+	slog.Info("Starting Finch management server", "release", version.Release(), "commit", version.Commit())
 	slog.Info("Listening on " + listenAddr)
-	if err := server.ListenAndServe(); err != nil {
-		slog.Error("Error starting server: " + err.Error())
+
+	grpcServer, err := m.runGRPCServer(listenAddr)
+	if err != nil {
+		slog.Error("Failed to start server", "error", err)
 		os.Exit(1)
 	}
+
+	<-stop
+	slog.Info("Shutting down server...")
+
+	grpcServer.GracefulStop()
+	slog.Info("Server stopped")
+}
+
+func (m *manager) runGRPCServer(listenAddr string) (*grpc.Server, error) {
+	listen, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		slog.Error("Failed to listen: " + err.Error())
+		return nil, err
+	}
+
+	authInterceptor := grpcserver.NewAuthInterceptor(m.config)
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(authInterceptor.Unary()),
+	)
+
+	agentServer := grpcserver.NewAgentServer(m.controller, m.config)
+	api.RegisterAgentServiceServer(grpcServer, agentServer)
+
+	infoServer := grpcserver.NewInfoServer(m.config)
+	api.RegisterInfoServiceServer(grpcServer, infoServer)
+
+	reflection.Register(grpcServer)
+
+	go func() {
+		if err := grpcServer.Serve(listen); err != nil && err != grpc.ErrServerStopped {
+			slog.Error("Server error: " + err.Error())
+			os.Exit(1)
+		}
+	}()
+
+	return grpcServer, nil
 }

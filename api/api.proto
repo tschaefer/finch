@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package finch;
+
+option go_package = "github.com/tschaefer/finch/api;api";
+
+service AgentService {
+  rpc RegisterAgent(RegisterAgentRequest) returns (RegisterAgentResponse);
+  rpc DeregisterAgent(DeregisterAgentRequest) returns (DeregisterAgentResponse);
+  rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  rpc GetAgentConfig(GetAgentConfigRequest) returns (GetAgentConfigResponse);
+}
+
+service InfoService {
+  rpc GetServiceInfo(GetServiceInfoRequest) returns (GetServiceInfoResponse);
+}
+
+message RegisterAgentRequest {
+  string hostname = 1;
+  repeated string tags = 2;
+  repeated string log_sources = 3;
+  bool metrics = 4;
+  repeated string metrics_targets = 5;
+  bool profiles = 6;
+}
+
+message RegisterAgentResponse {
+  string rid = 1;
+}
+
+message DeregisterAgentRequest {
+  string rid = 1;
+}
+
+message DeregisterAgentResponse {}
+
+message GetAgentRequest {
+  string rid = 1;
+}
+
+message GetAgentResponse {
+  string resource_id = 1;
+  string hostname = 2;
+  repeated string tags = 3;
+  repeated string log_sources = 4;
+  bool metrics = 5;
+  repeated string metrics_targets = 6;
+  bool profiles = 7;
+  string created_at = 8;
+}
+
+message ListAgentsRequest {}
+
+message AgentListItem {
+  string rid = 1;
+  string hostname = 2;
+}
+
+message ListAgentsResponse {
+  repeated AgentListItem agents = 1;
+}
+
+message GetAgentConfigRequest {
+  string rid = 1;
+}
+
+message GetAgentConfigResponse {
+  bytes config = 1;
+}
+
+message GetServiceInfoRequest {}
+
+message GetServiceInfoResponse {
+  string id = 1;
+  string hostname = 2;
+  string created_at = 3;
+  string release = 4;
+  string commit = 5;
+}
