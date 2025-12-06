@@ -78,17 +78,24 @@ func (m *manager) Run(listenAddr string) {
 	slog.Info("Starting Finch management server", "release", version.Release(), "commit", version.Commit())
 	slog.Info("Listening on " + listenAddr)
 
-	go m.runGRPCServer(listenAddr)
+	grpcServer, err := m.runGRPCServer(listenAddr)
+	if err != nil {
+		slog.Error("Failed to start server", "error", err)
+		os.Exit(1)
+	}
 
 	<-stop
 	slog.Info("Shutting down server...")
+
+	grpcServer.GracefulStop()
+	slog.Info("Server stopped")
 }
 
-func (m *manager) runGRPCServer(listenAddr string) {
+func (m *manager) runGRPCServer(listenAddr string) (*grpc.Server, error) {
 	listen, err := net.Listen("tcp", listenAddr)
 	if err != nil {
-		slog.Error("Failed to listen for gRPC: " + err.Error())
-		os.Exit(1)
+		slog.Error("Failed to listen: " + err.Error())
+		return nil, err
 	}
 
 	authInterceptor := grpcserver.NewAuthInterceptor(m.config)
@@ -104,8 +111,12 @@ func (m *manager) runGRPCServer(listenAddr string) {
 
 	reflection.Register(grpcServer)
 
-	if err := grpcServer.Serve(listen); err != nil {
-		slog.Error("gRPC server error: " + err.Error())
-		os.Exit(1)
-	}
+	go func() {
+		if err := grpcServer.Serve(listen); err != nil && err != grpc.ErrServerStopped {
+			slog.Error("Server error: " + err.Error())
+			os.Exit(1)
+		}
+	}()
+
+	return grpcServer, nil
 }

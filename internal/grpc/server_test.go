@@ -121,6 +121,23 @@ func TestRegisterAgent_AlreadyExists(t *testing.T) {
 	assert.Equal(t, codes.AlreadyExists, st.Code())
 }
 
+func TestRegisterAgent_InvalidArgument(t *testing.T) {
+	server := NewAgentServer(&mockController{}, &mockedConfig)
+
+	req := &api.RegisterAgentRequest{
+		Hostname:   "",
+		LogSources: []string{"journal://"},
+	}
+
+	resp, err := server.RegisterAgent(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	st, ok := status.FromError(err)
+	assert.True(t, ok)
+	assert.Equal(t, codes.InvalidArgument, st.Code())
+}
+
 func TestDeregisterAgent_Success(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
@@ -132,6 +149,22 @@ func TestDeregisterAgent_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
+}
+
+func TestDeregisterAgent_InvalidArgument(t *testing.T) {
+	server := NewAgentServer(&mockController{}, &mockedConfig)
+
+	req := &api.DeregisterAgentRequest{
+		Rid: "",
+	}
+
+	resp, err := server.DeregisterAgent(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	st, ok := status.FromError(err)
+	assert.True(t, ok)
+	assert.Equal(t, codes.InvalidArgument, st.Code())
 }
 
 func TestDeregisterAgent_NotFound(t *testing.T) {
@@ -163,6 +196,22 @@ func TestGetAgent_Success(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, "rid:12345", resp.ResourceId)
 	assert.Equal(t, "node1", resp.Hostname)
+}
+
+func TestGetAgent_InvalidArgument(t *testing.T) {
+	server := NewAgentServer(&mockController{}, &mockedConfig)
+
+	req := &api.GetAgentRequest{
+		Rid: "",
+	}
+
+	resp, err := server.GetAgent(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	st, ok := status.FromError(err)
+	assert.True(t, ok)
+	assert.Equal(t, codes.InvalidArgument, st.Code())
 }
 
 func TestGetAgent_NotFound(t *testing.T) {
@@ -207,6 +256,22 @@ func TestGetAgentConfig_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, []byte("config content"), resp.Config)
+}
+
+func TestGetAgentConfig_InvalidArgument(t *testing.T) {
+	server := NewAgentServer(&mockController{}, &mockedConfig)
+
+	req := &api.GetAgentConfigRequest{
+		Rid: "",
+	}
+
+	resp, err := server.GetAgentConfig(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	st, ok := status.FromError(err)
+	assert.True(t, ok)
+	assert.Equal(t, codes.InvalidArgument, st.Code())
 }
 
 func TestGetAgentConfig_NotFound(t *testing.T) {

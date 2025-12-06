@@ -91,7 +91,7 @@ grpcurl \
   -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
   -d '{"rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}' \
   finch.example.com:443 \
-  finch.AgentService/GetAgentConfig > agent.cfg
+  finch.AgentService/GetAgentConfig | jq -r .config | base64 -d > agent.cfg
 ```
 
 The downloaded configuration file can be used to

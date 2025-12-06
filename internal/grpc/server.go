@@ -45,6 +45,13 @@ func NewInfoServer(cfg config.Config) *InfoServer {
 }
 
 func (s *AgentServer) RegisterAgent(ctx context.Context, req *api.RegisterAgentRequest) (*api.RegisterAgentResponse, error) {
+	if req.Hostname == "" {
+		return nil, status.Error(codes.InvalidArgument, "hostname is required")
+	}
+	if len(req.LogSources) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "at least one log source is required")
+	}
+
 	agent := &controller.Agent{
 		Hostname:       req.Hostname,
 		Tags:           req.Tags,
@@ -66,6 +73,10 @@ func (s *AgentServer) RegisterAgent(ctx context.Context, req *api.RegisterAgentR
 }
 
 func (s *AgentServer) DeregisterAgent(ctx context.Context, req *api.DeregisterAgentRequest) (*api.DeregisterAgentResponse, error) {
+	if req.Rid == "" {
+		return nil, status.Error(codes.InvalidArgument, "resource ID is required")
+	}
+
 	err := s.controller.DeregisterAgent(req.Rid)
 	if err != nil {
 		if errors.Is(err, controller.ErrAgentNotFound) {
