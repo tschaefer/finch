@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"slices"
+	"strings"
 	"text/template"
 	"time"
 
@@ -67,6 +68,9 @@ loki.write "default" {
 	external_labels = {
 		"host" = "{{ .Hostname }}",
 		"rid" = "{{ .ResourceId }}",
+		{{- range .Labels }}
+		{{ . }},
+		{{- end }}
 	}
 }
 
@@ -180,6 +184,9 @@ prometheus.remote_write "default" {
 	external_labels = {
 		"host" = "{{ .Hostname }}",
 		"rid" = "{{ .ResourceId }}",
+		{{- range .Labels }}
+		{{ . }},
+		{{- end }}
 	}
 }
 
@@ -243,6 +250,9 @@ pyroscope.write "backend" {
 	external_labels = {
 		"host" = "{{ .Hostname }}",
 		"rid" = "{{ .ResourceId }}",
+		{{- range .Labels }}
+		{{ . }},
+		{{- end }}
 	}
 }
 {{ end -}}
@@ -338,6 +348,16 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 		return nil, err
 	}
 
+	labels := make([]string, 0)
+	for _, label := range agent.Labels {
+		if strings.Contains(label, "=") {
+			parts := strings.SplitN(label, "=", 2)
+			labels = append(labels, fmt.Sprintf("\"%s\" = \"%s\"", parts[0], parts[1]))
+		} else {
+			labels = append(labels, fmt.Sprintf("\"%s\" = \"true\"", label))
+		}
+	}
+
 	data := struct {
 		ServiceName string
 		Hostname    string
@@ -355,6 +375,7 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 			MetricsPath string
 		}
 		Profiles bool
+		Labels   []string
 	}{
 		Hostname:    agent.Hostname,
 		ServiceName: c.config.Hostname(),
@@ -376,6 +397,7 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 			MetricsPath string
 		}, 0),
 		Profiles: agent.Profiles,
+		Labels:   labels,
 	}
 
 	files := make([]string, 0)
