@@ -18,7 +18,7 @@ service InfoService {
 
 message RegisterAgentRequest {
   string hostname = 1;
-  repeated string tags = 2;
+  repeated string labels = 2;
   repeated string log_sources = 3;
   bool metrics = 4;
   repeated string metrics_targets = 5;
@@ -42,7 +42,7 @@ message GetAgentRequest {
 message GetAgentResponse {
   string resource_id = 1;
   string hostname = 2;
-  repeated string tags = 3;
+  repeated string labels = 3;
   repeated string log_sources = 4;
   bool metrics = 5;
   repeated string metrics_targets = 6;

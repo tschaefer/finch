@@ -31,7 +31,7 @@ var (
 
 type Agent struct {
 	Hostname       string   `json:"hostname"`
-	Tags           []string `json:"tags"`
+	Labels         []string `json:"labels"`
 	LogSources     []string `json:"log_sources"`
 	Metrics        bool     `json:"metrics"`
 	MetricsTargets []string `json:"metrics_targets"`
@@ -518,7 +518,7 @@ func (c *controller) marshalAgent(data *Agent) (*model.Agent, error) {
 		Metrics:        data.Metrics,
 		MetricsTargets: effectiveMetricsTargets,
 		Profiles:       data.Profiles,
-		Tags:           data.Tags,
+		Labels:         data.Labels,
 		ResourceId:     fmt.Sprintf("rid:finch:%s:agent:%s", c.config.Id(), uuid.New().String()),
 		Username:       rand.Text(),
 		Password:       password,

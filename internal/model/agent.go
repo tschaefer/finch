@@ -26,7 +26,7 @@ type Agent struct {
 	PasswordHash   string     `gorm:"not null" json:"-"`
 	RegisteredAt   time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP" json:"registered_at"`
 	ResourceId     string     `gorm:"not null;unique;uniqueIndex:uidx_agents_resource_id" json:"resource_id"`
-	Tags           []string   `gorm:"serializer:json" json:"tags"`
+	Labels         []string   `gorm:"serializer:json" json:"labels"`
 	Username       string     `gorm:"not null" json:"-"`
 }
 

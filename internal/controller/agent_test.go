@@ -73,7 +73,7 @@ func Test_RegisterAgentReturnsError_BadParameters(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "",
-		Tags:           nil,
+		Labels:         nil,
 		LogSources:     nil,
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -105,7 +105,7 @@ func Test_RegisterAgentReturnsError_InvalidSecret(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1"},
+		Labels:         []string{"key=value"},
 		LogSources:     []string{"journal://"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -124,7 +124,7 @@ func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1", "tag2"},
+		Labels:         []string{"key=value", "env=prod"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -164,7 +164,7 @@ func Test_DeregisterAgentReturnsNil(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1"},
+		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -197,7 +197,7 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1"},
+		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -231,7 +231,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1"},
+		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -265,7 +265,7 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host-1",
-		Tags:           []string{"tag1"},
+		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -277,7 +277,7 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 
 	data = Agent{
 		Hostname:       "test-host-2",
-		Tags:           []string{"tag2"},
+		Labels:         []string{"env=dev"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,

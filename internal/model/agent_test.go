@@ -36,7 +36,7 @@ func Test_CreateAgentSucceeds(t *testing.T) {
 		PasswordHash: "hashed_password",
 		RegisteredAt: time.Now(),
 		ResourceId:   "resource-123",
-		Tags:         []string{"tag1", "tag2"},
+		Labels:       []string{"key=value", "env=prod"},
 		Username:     "testuser",
 	}
 	agent, err := m.CreateAgent(data)
@@ -45,13 +45,13 @@ func Test_CreateAgentSucceeds(t *testing.T) {
 	assert.Equal(t, agent.Hostname, agent.Hostname, "agent hostname")
 	assert.Equal(t, agent.LogSources, agent.LogSources, "agent log sources")
 	assert.Equal(t, agent.ResourceId, agent.ResourceId, "agent resource ID")
-	assert.Equal(t, agent.Tags, agent.Tags, "agent tags")
+	assert.Equal(t, agent.Labels, agent.Labels, "agent labels")
 	assert.Equal(t, agent.Username, agent.Username, "agent username")
 	assert.Equal(t, agent.Active, agent.Active, "agent active status")
 	assert.Equal(t, agent.Password, agent.Password, "agent password")
 	assert.Equal(t, agent.PasswordHash, agent.PasswordHash, "agent password hash")
 	assert.NotZero(t, agent.RegisteredAt, "agent registered at")
-	assert.Equal(t, agent.Tags, agent.Tags, "agent tags")
+	assert.Equal(t, agent.Labels, agent.Labels, "agent tags")
 	assert.Nil(t, agent.LastSeen, "agent last seen")
 	assert.NotZero(t, agent.ID, "agent ID")
 }
