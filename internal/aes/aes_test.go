@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_EncryptReturnsErrorOnInvalidKeySize(t *testing.T) {
+func Test_EncryptReturnsError_InvalidKeySize(t *testing.T) {
 	key := base64.StdEncoding.EncodeToString([]byte("short key"))
 
 	_, err := Encrypt(key, "plaintext")
@@ -19,14 +19,14 @@ func Test_EncryptReturnsErrorOnInvalidKeySize(t *testing.T) {
 	assert.EqualError(t, err, wanted, "encrypt short key")
 }
 
-func Test_EncryptReturnsErrorOnInvalidBase64Key(t *testing.T) {
+func Test_EncryptReturnsError_InvalidKeyEncoding(t *testing.T) {
 	key := "invalid_base64_key"
 	_, err := Encrypt(key, "plaintext")
 	wanted := "illegal base64 data at input byte 7"
 	assert.EqualError(t, err, wanted, "encrypt invalid base64 key")
 }
 
-func Test_DecryptReturnsErrorOnInvalidKeySize(t *testing.T) {
+func Test_DecryptReturnsError_InvalidKeySize(t *testing.T) {
 	key := base64.StdEncoding.EncodeToString([]byte("short key"))
 
 	_, err := Decrypt(key, "ciphertext")
@@ -34,7 +34,7 @@ func Test_DecryptReturnsErrorOnInvalidKeySize(t *testing.T) {
 	assert.EqualError(t, err, wanted, "decrypt short key")
 }
 
-func Test_DecryptReturnsErrorOnInvalidBase64Key(t *testing.T) {
+func Test_DecryptReturnsError_InvalidKeyEncoding(t *testing.T) {
 	key := "invalid_base64_key"
 	_, err := Decrypt(key, "ciphertext")
 	wanted := "illegal base64 data at input byte 7"

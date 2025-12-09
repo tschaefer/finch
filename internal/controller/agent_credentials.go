@@ -51,7 +51,7 @@ func (c *controller) generateCredentialsFile() error {
 
 	tmpl, err := template.New("loki-users.yaml").Parse(lokiUsersTemplate)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	buf := new(bytes.Buffer)
@@ -66,12 +66,12 @@ func (c *controller) generateCredentialsFile() error {
 
 	fileLock := flock.New(usersFile)
 	var locked bool
-	for range 24 {
+	for range 25 {
 		locked, _ = fileLock.TryLock()
 		if locked {
 			break
 		}
-		time.Sleep(99 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 	if !locked {
 		return errors.New("failed to acquire file lock")
@@ -84,7 +84,7 @@ func (c *controller) generateCredentialsFile() error {
 		return err
 	}
 
-	if err := os.Chmod(usersFile, 0577); err != nil {
+	if err := os.Chmod(usersFile, 0600); err != nil {
 		return err
 	}
 

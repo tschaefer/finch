@@ -65,7 +65,7 @@ var mockedConfig = mockConfig{
 	password:  "test-password",
 }
 
-func Test_RegisterAgentReturnsError_BadParameters(t *testing.T) {
+func Test_RegisterAgentReturnsError_InvalidParameters(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -95,7 +95,7 @@ func Test_RegisterAgentReturnsError_BadParameters(t *testing.T) {
 	assert.EqualError(t, err, expected, "register agent with invalid log source")
 }
 
-func Test_RegisterAgentReturnsError_InvalidSecret(t *testing.T) {
+func Test_RegisterAgentReturnsError_InvalidServiceSecret(t *testing.T) {
 	model := mockModel()
 	config := mockedConfig
 	config.secret = "invalid-secret"
@@ -145,7 +145,7 @@ func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 
 }
 
-func Test_DeregisterAgentReturnsError_NotFound(t *testing.T) {
+func Test_DeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -156,7 +156,7 @@ func Test_DeregisterAgentReturnsError_NotFound(t *testing.T) {
 	assert.EqualError(t, err, expected, "deregister non-existent agent")
 }
 
-func Test_DeregisterAgentReturnsNil(t *testing.T) {
+func Test_DeregisterAgentSucceeds(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -178,7 +178,7 @@ func Test_DeregisterAgentReturnsNil(t *testing.T) {
 	assert.NoError(t, err, "deregister existing agent")
 }
 
-func Test_CreateAgentConfigReturnsError_NotFound(t *testing.T) {
+func Test_CreateAgentConfigReturnsError_AgentNotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -212,7 +212,7 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 	assert.NotEmpty(t, config, "agent config not empty")
 }
 
-func Test_GetAgentReturnsError_NotFound(t *testing.T) {
+func Test_GetAgentReturnsError_AgentNotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -246,7 +246,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 	assert.Equal(t, "test-host", agent.Hostname, "agent hostname")
 }
 
-func Test_ListAgentsReturnsEmptyList(t *testing.T) {
+func Test_ListAgentsReturnsEmptyList_AgentsNotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)

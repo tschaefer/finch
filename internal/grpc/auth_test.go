@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestAuthInterceptor_Success(t *testing.T) {
+func TestAuthInterceptorSucceeds(t *testing.T) {
 	interceptor := NewAuthInterceptor(&mockedConfig)
 	unary := interceptor.Unary()
 
@@ -33,7 +33,7 @@ func TestAuthInterceptor_Success(t *testing.T) {
 	assert.True(t, called, "handler should have been invoked")
 }
 
-func TestAuthInterceptor_MissingMetadata(t *testing.T) {
+func TestAuthInterceptorReturnsError_MissingMetadata(t *testing.T) {
 	interceptor := NewAuthInterceptor(&mockedConfig)
 	unary := interceptor.Unary()
 
@@ -53,7 +53,7 @@ func TestAuthInterceptor_MissingMetadata(t *testing.T) {
 	assert.False(t, handlerCalled, "handler must not be called on auth failure")
 }
 
-func TestAuthInterceptor_InvalidHeaderPrefix(t *testing.T) {
+func TestAuthInterceptorReturnsError_InvalidAuthType(t *testing.T) {
 	interceptor := NewAuthInterceptor(&mockedConfig)
 	unary := interceptor.Unary()
 
@@ -74,7 +74,7 @@ func TestAuthInterceptor_InvalidHeaderPrefix(t *testing.T) {
 	assert.False(t, handlerCalled)
 }
 
-func TestAuthInterceptor_InvalidBase64(t *testing.T) {
+func TestAuthInterceptorReturnsError_InvalidAuthEncoding(t *testing.T) {
 	interceptor := NewAuthInterceptor(&mockedConfig)
 	unary := interceptor.Unary()
 
@@ -95,7 +95,7 @@ func TestAuthInterceptor_InvalidBase64(t *testing.T) {
 	assert.False(t, handlerCalled)
 }
 
-func TestAuthInterceptor_WrongCredentials(t *testing.T) {
+func TestAuthInterceptorReturnsError_InvalidCredentials(t *testing.T) {
 	interceptor := NewAuthInterceptor(&mockedConfig)
 	unary := interceptor.Unary()
 

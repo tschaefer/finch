@@ -64,7 +64,7 @@ func waitForLog(t *testing.T, ch chan struct{}) {
 	}
 }
 
-func TestLoggingInterceptor_Success(t *testing.T) {
+func TestLoggingInterceptorLogsInfo(t *testing.T) {
 	ch := setupLogger()
 
 	interceptor := NewLoggingInterceptor()
@@ -93,7 +93,7 @@ func TestLoggingInterceptor_Success(t *testing.T) {
 	assert.Equal(t, "INFO", content["level"])
 }
 
-func TestLoggingInterceptor_Error(t *testing.T) {
+func TestLoggingInterceptorLogsError(t *testing.T) {
 	ch := setupLogger()
 
 	interceptor := NewLoggingInterceptor()
@@ -124,7 +124,7 @@ func TestLoggingInterceptor_Error(t *testing.T) {
 	assert.Equal(t, "ERROR", content["level"])
 }
 
-func TestLoggingInterceptor_Warn(t *testing.T) {
+func TestLoggingInterceptorLogsWarning(t *testing.T) {
 	ch := setupLogger()
 
 	interceptor := NewLoggingInterceptor()

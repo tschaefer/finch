@@ -88,7 +88,7 @@ func (m *mockController) GetAgent(rid string) (*model.Agent, error) {
 	}, nil
 }
 
-func TestRegisterAgent_Success(t *testing.T) {
+func TestRegisterAgentReturnsResourceId(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.RegisterAgentRequest{
@@ -104,7 +104,7 @@ func TestRegisterAgent_Success(t *testing.T) {
 	assert.Equal(t, "rid:12345", resp.Rid)
 }
 
-func TestRegisterAgent_AlreadyExists(t *testing.T) {
+func TestRegisterAgentReturnsError_AgentAlreadyExists(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.RegisterAgentRequest{
@@ -121,7 +121,7 @@ func TestRegisterAgent_AlreadyExists(t *testing.T) {
 	assert.Equal(t, codes.AlreadyExists, st.Code())
 }
 
-func TestRegisterAgent_InvalidArgument(t *testing.T) {
+func TestRegisterAgentReturnsError_InvalidArguments(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.RegisterAgentRequest{
@@ -138,7 +138,7 @@ func TestRegisterAgent_InvalidArgument(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 }
 
-func TestDeregisterAgent_Success(t *testing.T) {
+func TestDeregisterAgentSucceeds(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.DeregisterAgentRequest{
@@ -151,7 +151,7 @@ func TestDeregisterAgent_Success(t *testing.T) {
 	assert.NotNil(t, resp)
 }
 
-func TestDeregisterAgent_InvalidArgument(t *testing.T) {
+func TestDeregisterAgentReturnsError_InvalidArguments(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.DeregisterAgentRequest{
@@ -167,7 +167,7 @@ func TestDeregisterAgent_InvalidArgument(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 }
 
-func TestDeregisterAgent_NotFound(t *testing.T) {
+func TestDeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.DeregisterAgentRequest{
@@ -183,7 +183,7 @@ func TestDeregisterAgent_NotFound(t *testing.T) {
 	assert.Equal(t, codes.NotFound, st.Code())
 }
 
-func TestGetAgent_Success(t *testing.T) {
+func TestGetAgentReturnsAgent(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.GetAgentRequest{
@@ -198,7 +198,7 @@ func TestGetAgent_Success(t *testing.T) {
 	assert.Equal(t, "node1", resp.Hostname)
 }
 
-func TestGetAgent_InvalidArgument(t *testing.T) {
+func TestGetAgentReturnsError_InvalidArguments(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.GetAgentRequest{
@@ -214,7 +214,7 @@ func TestGetAgent_InvalidArgument(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 }
 
-func TestGetAgent_NotFound(t *testing.T) {
+func TestGetAgentReturnsError_AgentNotFound(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.GetAgentRequest{
@@ -230,7 +230,7 @@ func TestGetAgent_NotFound(t *testing.T) {
 	assert.Equal(t, codes.NotFound, st.Code())
 }
 
-func TestListAgents_Success(t *testing.T) {
+func TestListAgentsReturnsAgentList(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.ListAgentsRequest{}
@@ -244,7 +244,7 @@ func TestListAgents_Success(t *testing.T) {
 	assert.Equal(t, "node1", resp.Agents[0].Hostname)
 }
 
-func TestGetAgentConfig_Success(t *testing.T) {
+func TestGetAgentConfigReturnsConfig(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.GetAgentConfigRequest{
@@ -258,7 +258,7 @@ func TestGetAgentConfig_Success(t *testing.T) {
 	assert.Equal(t, []byte("config content"), resp.Config)
 }
 
-func TestGetAgentConfig_InvalidArgument(t *testing.T) {
+func TestGetAgentConfigReturnsError_InvalidArguments(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.GetAgentConfigRequest{
@@ -274,7 +274,7 @@ func TestGetAgentConfig_InvalidArgument(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 }
 
-func TestGetAgentConfig_NotFound(t *testing.T) {
+func TestGetAgentConfigReturnsError_AgentNotFound(t *testing.T) {
 	server := NewAgentServer(&mockController{}, &mockedConfig)
 
 	req := &api.GetAgentConfigRequest{
@@ -290,7 +290,7 @@ func TestGetAgentConfig_NotFound(t *testing.T) {
 	assert.Equal(t, codes.NotFound, st.Code())
 }
 
-func TestGetServiceInfo_Success(t *testing.T) {
+func TestGetServiceInfoReturnsInfo(t *testing.T) {
 	server := NewInfoServer(&mockedConfig)
 
 	req := &api.GetServiceInfoRequest{}

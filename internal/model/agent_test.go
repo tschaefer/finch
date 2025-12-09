@@ -22,7 +22,7 @@ func mockDatabase() *gorm.DB {
 	return db
 }
 
-func Test_CreateAgentSucceeds(t *testing.T) {
+func Test_CreateAgentReturnsAgent(t *testing.T) {
 	db := mockDatabase()
 	m := New(db)
 	assert.NotNil(t, m, "create model")
@@ -42,16 +42,15 @@ func Test_CreateAgentSucceeds(t *testing.T) {
 	agent, err := m.CreateAgent(data)
 	assert.NoError(t, err, "create agent")
 
-	assert.Equal(t, agent.Hostname, agent.Hostname, "agent hostname")
-	assert.Equal(t, agent.LogSources, agent.LogSources, "agent log sources")
-	assert.Equal(t, agent.ResourceId, agent.ResourceId, "agent resource ID")
-	assert.Equal(t, agent.Labels, agent.Labels, "agent labels")
-	assert.Equal(t, agent.Username, agent.Username, "agent username")
-	assert.Equal(t, agent.Active, agent.Active, "agent active status")
-	assert.Equal(t, agent.Password, agent.Password, "agent password")
-	assert.Equal(t, agent.PasswordHash, agent.PasswordHash, "agent password hash")
+	assert.Equal(t, data.Hostname, agent.Hostname, "agent hostname")
+	assert.Equal(t, data.LogSources, agent.LogSources, "agent log sources")
+	assert.Equal(t, data.ResourceId, agent.ResourceId, "agent resource ID")
+	assert.Equal(t, data.Labels, agent.Labels, "agent labels")
+	assert.Equal(t, data.Username, agent.Username, "agent username")
+	assert.Equal(t, data.Active, agent.Active, "agent active status")
+	assert.Equal(t, data.Password, agent.Password, "agent password")
+	assert.Equal(t, data.PasswordHash, agent.PasswordHash, "agent password hash")
 	assert.NotZero(t, agent.RegisteredAt, "agent registered at")
-	assert.Equal(t, agent.Labels, agent.Labels, "agent tags")
 	assert.Nil(t, agent.LastSeen, "agent last seen")
 	assert.NotZero(t, agent.ID, "agent ID")
 }

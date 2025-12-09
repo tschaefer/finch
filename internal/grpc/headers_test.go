@@ -31,7 +31,7 @@ func (f *fakeServerTransportStream) SetTrailer(md metadata.MD) error {
 	return nil
 }
 
-func TestHeadersInterceptor_Success(t *testing.T) {
+func TestHeadersInterceptorSucceeds(t *testing.T) {
 	interceptor := NewHeadersInterceptor()
 	unary := interceptor.Unary()
 
