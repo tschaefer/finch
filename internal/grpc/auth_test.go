@@ -37,7 +37,7 @@ func TestAuthInterceptor_MissingMetadata(t *testing.T) {
 	interceptor := NewAuthInterceptor(&mockedConfig)
 	unary := interceptor.Unary()
 
-	ctx := context.Background() // no metadata
+	ctx := context.Background()
 
 	handlerCalled := false
 	handler := func(ctx context.Context, req any) (any, error) {
