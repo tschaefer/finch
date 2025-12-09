@@ -46,7 +46,7 @@ var mockedConfig = mockConfig{
 	password:  "test-password",
 }
 
-func Test_NewReturnsObject_DefaultListenAddressAndLoggingOff(t *testing.T) {
+func Test_NewReturnsObjectWithDefaultListenAddressAndLoggingOff(t *testing.T) {
 	profiler := New(&mockedConfig, false)
 	assert.NotNil(t, profiler, "create controller")
 
@@ -59,7 +59,7 @@ func Test_NewReturnsObject_DefaultListenAddressAndLoggingOff(t *testing.T) {
 	assert.True(t, logger.IsNil(), "logging is off")
 }
 
-func Test_NewReturnsObject_SetListenAddressAndLoggingOn(t *testing.T) {
+func Test_NewReturnsObjectSetsListenAddressAndLoggingOn(t *testing.T) {
 	mockedConfigWithAddress := mockConfig{
 		profiler: "https://pyroscope.example.com",
 	}

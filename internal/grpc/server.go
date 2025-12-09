@@ -54,7 +54,7 @@ func (s *AgentServer) RegisterAgent(ctx context.Context, req *api.RegisterAgentR
 
 	agent := &controller.Agent{
 		Hostname:       req.Hostname,
-		Tags:           req.Tags,
+		Labels:         req.Labels,
 		LogSources:     req.LogSources,
 		Metrics:        req.Metrics,
 		MetricsTargets: req.MetricsTargets,
@@ -104,7 +104,7 @@ func (s *AgentServer) GetAgent(ctx context.Context, req *api.GetAgentRequest) (*
 	return &api.GetAgentResponse{
 		ResourceId:     agent.ResourceId,
 		Hostname:       agent.Hostname,
-		Tags:           agent.Tags,
+		Labels:         agent.Labels,
 		LogSources:     agent.LogSources,
 		Metrics:        agent.Metrics,
 		MetricsTargets: agent.MetricsTargets,

@@ -77,5 +77,11 @@ func (d *database) Connection() *gorm.DB {
 func (d *database) Migrate() error {
 	slog.Debug("Migrating database schema")
 
+	if d.connection.Migrator().HasColumn(&model.Agent{}, "tags") {
+		if err := d.connection.Migrator().RenameColumn(&model.Agent{}, "tags", "labels"); err != nil {
+			return err
+		}
+	}
+
 	return d.connection.AutoMigrate(&model.Agent{})
 }

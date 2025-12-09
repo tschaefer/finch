@@ -5,8 +5,11 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package controller
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tschaefer/finch/internal/model"
@@ -65,7 +68,7 @@ var mockedConfig = mockConfig{
 	password:  "test-password",
 }
 
-func Test_RegisterAgentReturnsError_BadParameters(t *testing.T) {
+func Test_RegisterAgentReturnsError_InvalidParameters(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -73,7 +76,7 @@ func Test_RegisterAgentReturnsError_BadParameters(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "",
-		Tags:           nil,
+		Labels:         nil,
 		LogSources:     nil,
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -95,7 +98,7 @@ func Test_RegisterAgentReturnsError_BadParameters(t *testing.T) {
 	assert.EqualError(t, err, expected, "register agent with invalid log source")
 }
 
-func Test_RegisterAgentReturnsError_InvalidSecret(t *testing.T) {
+func Test_RegisterAgentReturnsError_InvalidServiceSecret(t *testing.T) {
 	model := mockModel()
 	config := mockedConfig
 	config.secret = "invalid-secret"
@@ -105,7 +108,7 @@ func Test_RegisterAgentReturnsError_InvalidSecret(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1"},
+		Labels:         []string{"key=value"},
 		LogSources:     []string{"journal://"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -124,7 +127,7 @@ func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1", "tag2"},
+		Labels:         []string{"key=value", "env=prod"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -145,7 +148,7 @@ func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 
 }
 
-func Test_DeregisterAgentReturnsError_NotFound(t *testing.T) {
+func Test_DeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -156,7 +159,7 @@ func Test_DeregisterAgentReturnsError_NotFound(t *testing.T) {
 	assert.EqualError(t, err, expected, "deregister non-existent agent")
 }
 
-func Test_DeregisterAgentReturnsNil(t *testing.T) {
+func Test_DeregisterAgentSucceeds(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -164,7 +167,7 @@ func Test_DeregisterAgentReturnsNil(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1"},
+		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -178,7 +181,7 @@ func Test_DeregisterAgentReturnsNil(t *testing.T) {
 	assert.NoError(t, err, "deregister existing agent")
 }
 
-func Test_CreateAgentConfigReturnsError_NotFound(t *testing.T) {
+func Test_CreateAgentConfigReturnsError_AgentNotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -197,10 +200,10 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1"},
-		LogSources:     []string{"file:///var/log/syslog"},
+		Labels:         []string{"key=value", "statement"},
+		LogSources:     []string{"file:///var/log/syslog", "journal://", "docker://"},
 		Metrics:        false,
-		MetricsTargets: nil,
+		MetricsTargets: []string{"http://localhost:9100/metrics"},
 		Profiles:       false,
 	}
 
@@ -212,7 +215,7 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 	assert.NotEmpty(t, config, "agent config not empty")
 }
 
-func Test_GetAgentReturnsError_NotFound(t *testing.T) {
+func Test_GetAgentReturnsError_AgentNotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -231,7 +234,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
-		Tags:           []string{"tag1"},
+		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -246,7 +249,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 	assert.Equal(t, "test-host", agent.Hostname, "agent hostname")
 }
 
-func Test_ListAgentsReturnsEmptyList(t *testing.T) {
+func Test_ListAgentsReturnsEmptyList_AgentsNotFound(t *testing.T) {
 	model := mockModel()
 
 	ctrl := New(model, &mockedConfig)
@@ -265,7 +268,7 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host-1",
-		Tags:           []string{"tag1"},
+		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -277,7 +280,7 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 
 	data = Agent{
 		Hostname:       "test-host-2",
-		Tags:           []string{"tag2"},
+		Labels:         []string{"env=dev"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
 		MetricsTargets: nil,
@@ -292,4 +295,128 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 	assert.Len(t, agents, 2, "agent list")
 	assert.Equal(t, "test-host-1", agents[0]["hostname"], "first agent hostname")
 	assert.Equal(t, "test-host-2", agents[1]["hostname"], "second agent hostname")
+}
+
+func Test_RegisterAgentGeneratesCredentialsFile(t *testing.T) {
+	model := mockModel()
+
+	tmp := t.TempDir()
+	confDir := filepath.Join(tmp, "traefik", "etc", "conf.d")
+	if err := os.MkdirAll(confDir, 0755); err != nil {
+		t.Fatalf("failed to create conf dir: %v", err)
+	}
+
+	cfg := mockedConfig
+	cfg.library = tmp
+
+	ctrl := New(model, &cfg)
+	assert.NotNil(t, ctrl, "create controller")
+
+	data := Agent{
+		Hostname:       "test-host-credentials",
+		Labels:         []string{"key=value"},
+		LogSources:     []string{"file:///var/log/syslog"},
+		Metrics:        false,
+		MetricsTargets: nil,
+		Profiles:       false,
+	}
+
+	rid, err := ctrl.RegisterAgent(&data)
+	assert.NoError(t, err, "register agent with valid parameters")
+
+	usersFile := filepath.Join(confDir, "loki-users.yaml")
+
+	var content []byte
+	found := false
+	for range 50 {
+		if _, err := os.Stat(usersFile); err == nil {
+			content, err = os.ReadFile(usersFile)
+			if err != nil {
+				t.Fatalf("failed reading credentials file: %v", err)
+			}
+			found = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !found {
+		t.Fatalf("credentials file not created: %s", usersFile)
+	}
+
+	stored, err := ctrl.GetAgent(rid)
+	assert.NoError(t, err)
+	assert.Contains(t, string(content), stored.Username, "credentials file should contain username")
+	assert.Contains(t, string(content), stored.PasswordHash, "credentials file should contain password hash")
+}
+
+func Test_DeregisterAgentUpdatesCredentialsFile(t *testing.T) {
+	model := mockModel()
+
+	tmp := t.TempDir()
+	confDir := filepath.Join(tmp, "traefik", "etc", "conf.d")
+	if err := os.MkdirAll(confDir, 0755); err != nil {
+		t.Fatalf("failed to create conf dir: %v", err)
+	}
+
+	cfg := mockedConfig
+	cfg.library = tmp
+
+	ctrl := New(model, &cfg)
+	assert.NotNil(t, ctrl, "create controller")
+
+	data := Agent{
+		Hostname:       "test-host-deregister",
+		Labels:         []string{"key=value"},
+		LogSources:     []string{"file:///var/log/syslog"},
+		Metrics:        false,
+		MetricsTargets: nil,
+		Profiles:       false,
+	}
+
+	rid, err := ctrl.RegisterAgent(&data)
+	assert.NoError(t, err, "register agent with valid parameters")
+
+	usersFile := filepath.Join(confDir, "loki-users.yaml")
+
+	var content []byte
+	found := false
+	for range 50 {
+		if _, err := os.Stat(usersFile); err == nil {
+			content, err = os.ReadFile(usersFile)
+			if err != nil {
+				t.Fatalf("failed reading credentials file: %v", err)
+			}
+			found = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !found {
+		t.Fatalf("credentials file not created: %s", usersFile)
+	}
+
+	stored, err := ctrl.GetAgent(rid)
+	assert.NoError(t, err)
+	assert.Contains(t, string(content), stored.Username, "credentials file should contain username before deregister")
+
+	err = ctrl.DeregisterAgent(rid)
+	assert.NoError(t, err)
+
+	updated := false
+	for range 50 {
+		if _, err := os.Stat(usersFile); err == nil {
+			content, err = os.ReadFile(usersFile)
+			if err != nil {
+				t.Fatalf("failed reading credentials file after deregister: %v", err)
+			}
+			if !strings.Contains(string(content), stored.Username) {
+				updated = true
+				break
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !updated {
+		t.Fatalf("credentials file not updated after deregister; still contains username: %s", stored.Username)
+	}
 }

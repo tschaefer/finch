@@ -99,8 +99,14 @@ func (m *manager) runGRPCServer(listenAddr string) (*grpc.Server, error) {
 	}
 
 	authInterceptor := grpcserver.NewAuthInterceptor(m.config)
+	headersInterceptor := grpcserver.NewHeadersInterceptor()
+	loggingInterceptor := grpcserver.NewLoggingInterceptor()
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(authInterceptor.Unary()),
+		grpc.ChainUnaryInterceptor(
+			loggingInterceptor.Unary(),
+			authInterceptor.Unary(),
+			headersInterceptor.Unary(),
+		),
 	)
 
 	agentServer := grpcserver.NewAgentServer(m.controller, m.config)

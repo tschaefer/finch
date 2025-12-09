@@ -33,7 +33,7 @@ func (m *mockConfig) Library() string               { return m.library }
 func (m *mockConfig) Secret() string                { return m.secret }
 func (m *mockConfig) Credentials() (string, string) { return m.username, m.password }
 
-func Test_NewReturnsError_BadSchema(t *testing.T) {
+func Test_NewReturnsError_InvalidUrlSchema(t *testing.T) {
 	mockedConfig := mockConfig{
 		database: "psql://user:pass@localhost/dbname",
 	}
@@ -77,4 +77,43 @@ func Test_MigrateSucceeds(t *testing.T) {
 
 	err = db.Migrate()
 	assert.NoError(t, err, "migrate database")
+
+	connection := db.Connection()
+	type result struct {
+		Name string
+	}
+	var results []result
+	err = connection.Raw("PRAGMA table_info(agents);").Scan(&results).Error
+	assert.NoError(t, err, "query table info")
+
+	columns := []string{
+		"active",
+		"created_at",
+		"hostname",
+		"id",
+		"labels",
+		"last_seen",
+		"log_sources",
+		"metrics",
+		"metrics_targets",
+		"password",
+		"password_hash",
+		"profiles",
+		"registered_at",
+		"resource_id",
+		"updated_at",
+		"username",
+	}
+
+	assert.GreaterOrEqual(t, len(results), len(columns), "agents table should have at least the expected number of columns")
+	for _, column := range columns {
+		found := false
+		for _, row := range results {
+			if row.Name == column {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "column "+column+" should exist in agents table")
+	}
 }
