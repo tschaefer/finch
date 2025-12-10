@@ -16,17 +16,12 @@ const (
 	defaultServerAddress = "http://pyroscope:4040"
 )
 
-type Profiler interface {
-	Start() error
-	Stop() error
-}
-
-type profiler struct {
+type Profiler struct {
 	instance *pyroscope.Profiler
 	config   pyroscope.Config
 }
 
-func New(config *config.Config, logging bool) Profiler {
+func New(config *config.Config, logging bool) *Profiler {
 	slog.Debug("Initializing Pyroscope profiler", "serverAddress", config.Profiler(), "logging", logging)
 
 	serverAddress := config.Profiler()
@@ -58,10 +53,10 @@ func New(config *config.Config, logging bool) Profiler {
 			pyroscope.ProfileBlockDuration,
 		},
 	}
-	return &profiler{config: cfg}
+	return &Profiler{config: cfg}
 }
 
-func (p *profiler) Start() error {
+func (p *Profiler) Start() error {
 	slog.Debug("Starting Pyroscope profiler", "config", p.config)
 
 	runtime.SetMutexProfileFraction(5)
@@ -77,7 +72,7 @@ func (p *profiler) Start() error {
 	return nil
 }
 
-func (p *profiler) Stop() error {
+func (p *Profiler) Stop() error {
 	slog.Debug("Stopping Pyroscope profiler")
 
 	if p.instance == nil {

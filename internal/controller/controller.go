@@ -12,19 +12,15 @@ import (
 	"github.com/tschaefer/finch/internal/model"
 )
 
-type Controller interface {
-	ControllerAgent
-}
-
-type controller struct {
+type Controller struct {
 	config *config.Config
 	model  *model.Model
 }
 
-func New(model *model.Model, cfg *config.Config) Controller {
+func New(model *model.Model, cfg *config.Config) *Controller {
 	slog.Debug("Initializing Controller", "model", fmt.Sprintf("%+v", model), "config", fmt.Sprintf("%+v", cfg))
 
-	return &controller{
+	return &Controller{
 		model:  model,
 		config: cfg,
 	}

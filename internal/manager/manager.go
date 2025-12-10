@@ -27,8 +27,8 @@ type Manager struct {
 	config     *config.Config
 	database   *database.Database
 	model      *model.Model
-	controller controller.Controller
-	profiler   profiler.Profiler
+	controller *controller.Controller
+	profiler   *profiler.Profiler
 }
 
 func New(cfgFile string) (*Manager, error) {
