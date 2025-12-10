@@ -26,8 +26,8 @@ type database struct {
 	connection *gorm.DB
 }
 
-func New(config config.Config) (Database, error) {
-	slog.Debug("Initializing database", "config", fmt.Sprintf("%+T", config))
+func New(config *config.Config) (Database, error) {
+	slog.Debug("Initializing database", "config", fmt.Sprintf("%+v", config))
 
 	uri, err := url.Parse(config.Database())
 	if err != nil {

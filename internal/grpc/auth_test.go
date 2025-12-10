@@ -6,17 +6,25 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tschaefer/finch/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
+var testAuthCfg = config.NewFromData(&config.Data{
+	Credentials: config.Credentials{
+		Username: "testuser",
+		Password: "testpass",
+	},
+}, "")
+
 func TestAuthInterceptorSucceeds(t *testing.T) {
-	interceptor := NewAuthInterceptor(&mockedConfig)
+	interceptor := NewAuthInterceptor(testAuthCfg)
 	unary := interceptor.Unary()
 
-	user, password := mockedConfig.Credentials()
+	user, password := testAuthCfg.Credentials()
 	token := base64.StdEncoding.EncodeToString([]byte(user + ":" + password))
 	md := metadata.Pairs("authorization", "Basic "+token)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
@@ -34,7 +42,7 @@ func TestAuthInterceptorSucceeds(t *testing.T) {
 }
 
 func TestAuthInterceptorReturnsError_MissingMetadata(t *testing.T) {
-	interceptor := NewAuthInterceptor(&mockedConfig)
+	interceptor := NewAuthInterceptor(testAuthCfg)
 	unary := interceptor.Unary()
 
 	ctx := context.Background()
@@ -54,7 +62,7 @@ func TestAuthInterceptorReturnsError_MissingMetadata(t *testing.T) {
 }
 
 func TestAuthInterceptorReturnsError_InvalidAuthType(t *testing.T) {
-	interceptor := NewAuthInterceptor(&mockedConfig)
+	interceptor := NewAuthInterceptor(testAuthCfg)
 	unary := interceptor.Unary()
 
 	md := metadata.Pairs("authorization", "Bearer sometoken")
@@ -75,7 +83,7 @@ func TestAuthInterceptorReturnsError_InvalidAuthType(t *testing.T) {
 }
 
 func TestAuthInterceptorReturnsError_InvalidAuthEncoding(t *testing.T) {
-	interceptor := NewAuthInterceptor(&mockedConfig)
+	interceptor := NewAuthInterceptor(testAuthCfg)
 	unary := interceptor.Unary()
 
 	md := metadata.Pairs("authorization", "Basic not-base64!!")
@@ -96,7 +104,7 @@ func TestAuthInterceptorReturnsError_InvalidAuthEncoding(t *testing.T) {
 }
 
 func TestAuthInterceptorReturnsError_InvalidCredentials(t *testing.T) {
-	interceptor := NewAuthInterceptor(&mockedConfig)
+	interceptor := NewAuthInterceptor(testAuthCfg)
 	unary := interceptor.Unary()
 
 	token := base64.StdEncoding.EncodeToString([]byte("baduser:badpass"))

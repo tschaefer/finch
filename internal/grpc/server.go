@@ -21,15 +21,15 @@ import (
 type AgentServer struct {
 	api.UnimplementedAgentServiceServer
 	controller controller.Controller
-	config     config.Config
+	config     *config.Config
 }
 
 type InfoServer struct {
 	api.UnimplementedInfoServiceServer
-	config config.Config
+	config *config.Config
 }
 
-func NewAgentServer(ctrl controller.Controller, cfg config.Config) *AgentServer {
+func NewAgentServer(ctrl controller.Controller, cfg *config.Config) *AgentServer {
 	slog.Debug("Initializing gRPC AgentServer")
 	return &AgentServer{
 		controller: ctrl,
@@ -37,7 +37,7 @@ func NewAgentServer(ctrl controller.Controller, cfg config.Config) *AgentServer 
 	}
 }
 
-func NewInfoServer(cfg config.Config) *InfoServer {
+func NewInfoServer(cfg *config.Config) *InfoServer {
 	slog.Debug("Initializing gRPC InfoServer")
 	return &InfoServer{
 		config: cfg,

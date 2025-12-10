@@ -28,7 +28,7 @@ type Manager interface {
 }
 
 type manager struct {
-	config     config.Config
+	config     *config.Config
 	database   database.Database
 	model      model.Model
 	controller controller.Controller
@@ -38,7 +38,7 @@ type manager struct {
 func New(cfgFile string) (Manager, error) {
 	slog.Debug("Initializing Manager", "cfgFile", cfgFile)
 
-	cfg, err := config.Read(cfgFile)
+	cfg, err := config.NewFromFile(cfgFile)
 	if err != nil {
 		return nil, err
 	}

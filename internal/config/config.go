@@ -14,94 +14,30 @@ import (
 	"slices"
 )
 
+type Credentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type Data struct {
-	CreatedAt   string `json:"created_at"`
-	Database    string `json:"database"`
-	Profiler    string `json:"profiler"`
-	Hostname    string `json:"hostname"`
-	Id          string `json:"id"`
-	Secret      string `json:"secret"`
-	Version     string `json:"version"`
-	Credentials struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	} `json:"credentials"`
+	CreatedAt   string      `json:"created_at"`
+	Database    string      `json:"database"`
+	Profiler    string      `json:"profiler"`
+	Hostname    string      `json:"hostname"`
+	Id          string      `json:"id"`
+	Secret      string      `json:"secret"`
+	Version     string      `json:"version"`
+	Credentials Credentials `json:"credentials"`
 }
 
-type Config interface {
-	CreatedAt() string
-	Database() string
-	Profiler() string
-	Hostname() string
-	Id() string
-	Library() string
-	Secret() string
-	Version() string
-	Credentials() (string, string)
-}
-
-type config struct {
+type Config struct {
 	data    *Data
 	library string
 }
 
-func Read(file string) (Config, error) {
+func NewFromFile(file string) (*Config, error) {
 	slog.Debug("Reading configuration file", "file", file)
 
-	data, err := unmarshal(file)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := valid(data); err != nil {
-		return nil, err
-	}
-
-	slog.Debug("Configuration data", "data", filterSecrets(data))
-
-	return &config{
-		data:    data,
-		library: path.Dir(file),
-	}, nil
-}
-
-func (c *config) Version() string {
-	return c.data.Version
-}
-
-func (c *config) Hostname() string {
-	return c.data.Hostname
-}
-
-func (c *config) Database() string {
-	return c.data.Database
-}
-
-func (c *config) Profiler() string {
-	return c.data.Profiler
-}
-
-func (c *config) Id() string {
-	return c.data.Id
-}
-
-func (c *config) CreatedAt() string {
-	return c.data.CreatedAt
-}
-
-func (c *config) Library() string {
-	return c.library
-}
-
-func (c *config) Secret() string {
-	return c.data.Secret
-}
-
-func (c *config) Credentials() (string, string) {
-	return c.data.Credentials.Username, c.data.Credentials.Password
-}
-
-func unmarshal(file string) (*Data, error) {
 	if !path.IsAbs(file) {
 		return nil, fmt.Errorf("configuration file path must be absolute: %s", file)
 	}
@@ -110,11 +46,73 @@ func unmarshal(file string) (*Data, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read configuration file %s: %v", file, err)
 	}
+
+	return NewFromString(string(raw), path.Dir(file))
+}
+
+func NewFromString(jsonString string, library string) (*Config, error) {
+	slog.Debug("Parsing configuration from string")
+
 	var data Data
-	if err := json.Unmarshal(raw, &data); err != nil {
+	if err := json.Unmarshal([]byte(jsonString), &data); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal configuration file: %v", err)
 	}
-	return &data, nil
+
+	if err := valid(&data); err != nil {
+		return nil, err
+	}
+
+	slog.Debug("Configuration data", "data", filterSecrets(&data))
+
+	return &Config{
+		data:    &data,
+		library: library,
+	}, nil
+}
+
+func NewFromData(data *Data, library string) *Config {
+	slog.Debug("Creating configuration from data", "data", filterSecrets(data), "library", library)
+
+	return &Config{
+		data:    data,
+		library: library,
+	}
+}
+
+func (c *Config) Version() string {
+	return c.data.Version
+}
+
+func (c *Config) Hostname() string {
+	return c.data.Hostname
+}
+
+func (c *Config) Database() string {
+	return c.data.Database
+}
+
+func (c *Config) Profiler() string {
+	return c.data.Profiler
+}
+
+func (c *Config) Id() string {
+	return c.data.Id
+}
+
+func (c *Config) CreatedAt() string {
+	return c.data.CreatedAt
+}
+
+func (c *Config) Library() string {
+	return c.library
+}
+
+func (c *Config) Secret() string {
+	return c.data.Secret
+}
+
+func (c *Config) Credentials() (string, string) {
+	return c.data.Credentials.Username, c.data.Credentials.Password
 }
 
 func valid(data *Data) error {

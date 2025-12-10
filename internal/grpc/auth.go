@@ -18,10 +18,10 @@ import (
 )
 
 type AuthInterceptor struct {
-	config config.Config
+	config *config.Config
 }
 
-func NewAuthInterceptor(cfg config.Config) *AuthInterceptor {
+func NewAuthInterceptor(cfg *config.Config) *AuthInterceptor {
 	return &AuthInterceptor{
 		config: cfg,
 	}

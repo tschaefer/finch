@@ -13,7 +13,7 @@ import (
 )
 
 func Test_ReadReturnsError_NotExistingFile(t *testing.T) {
-	_, err := Read("/path/not/found/finch.json")
+	_, err := NewFromFile("/path/not/found/finch.json")
 	assert.Error(t, err, "read config file")
 
 	wanted := "no such file or directory"
@@ -21,7 +21,7 @@ func Test_ReadReturnsError_NotExistingFile(t *testing.T) {
 }
 
 func Test_ReadReturnsError_RelativeFilePath(t *testing.T) {
-	_, err := Read("relative/path/finch.json")
+	_, err := NewFromFile("relative/path/finch.json")
 	assert.Error(t, err, "read config file")
 
 	wanted := "configuration file path must be absolute:"
@@ -35,7 +35,7 @@ func Test_ReadReturnsError_InvalidJSON(t *testing.T) {
 	}()
 	_, _ = fmt.Fprintf(f, `- invalid json`)
 
-	_, err := Read(f.Name())
+	_, err := NewFromFile(f.Name())
 	assert.Error(t, err, "read config file")
 
 	wanted := "failed to unmarshal configuration file"
@@ -49,7 +49,7 @@ func Test_ReadReturnsError_MissingField(t *testing.T) {
 	}()
 	_, _ = fmt.Fprintf(f, `{"version": "1.0", "hostname": "localhost"}`)
 
-	_, err := Read(f.Name())
+	_, err := NewFromFile(f.Name())
 	assert.Error(t, err, "read config file")
 
 	wanted := "invalid configuration data, missing field: CreatedAt"
@@ -63,7 +63,7 @@ func Test_ReadReturnsError_MissingCredentialsField(t *testing.T) {
 	}()
 	_, _ = fmt.Fprintf(f, `{"version": "1.0", "hostname": "localhost", "created_at": "2023-10-01T00:00:00Z", "id": "12345", "database": "testdb", "secret": "secret", "credentials": { "username": "user"}}`)
 
-	_, err := Read(f.Name())
+	_, err := NewFromFile(f.Name())
 	assert.Error(t, err, "read config file")
 
 	wanted := "invalid configuration data, missing field: Credentials.Password"
@@ -88,7 +88,7 @@ func Test_ReadReturnsConfig(t *testing.T) {
 		}
 	}`)
 
-	config, err := Read(f.Name())
+	config, err := NewFromFile(f.Name())
 	assert.NoError(t, err, "read config file")
 
 	assert.Equal(t, "1.0", config.Version(), "version")

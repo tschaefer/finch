@@ -26,7 +26,7 @@ type profiler struct {
 	config   pyroscope.Config
 }
 
-func New(config config.Config, logging bool) Profiler {
+func New(config *config.Config, logging bool) Profiler {
 	slog.Debug("Initializing Pyroscope profiler", "serverAddress", config.Profiler(), "logging", logging)
 
 	serverAddress := config.Profiler()

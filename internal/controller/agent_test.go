@@ -12,11 +12,17 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tschaefer/finch/internal/config"
 	"github.com/tschaefer/finch/internal/model"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
+
+var cfg = config.NewFromData(&config.Data{
+	Secret: "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM=",
+	Id:     "test-id",
+}, "")
 
 func mockModel() model.Model {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
@@ -33,45 +39,10 @@ func mockModel() model.Model {
 	return model.New(db)
 }
 
-type mockConfig struct {
-	version   string
-	hostname  string
-	database  string
-	profiler  string
-	id        string
-	createdAt string
-	library   string
-	secret    string
-	username  string
-	password  string
-}
-
-func (m *mockConfig) Version() string               { return m.version }
-func (m *mockConfig) Hostname() string              { return m.hostname }
-func (m *mockConfig) Database() string              { return m.database }
-func (m *mockConfig) Profiler() string              { return m.profiler }
-func (m *mockConfig) Id() string                    { return m.id }
-func (m *mockConfig) CreatedAt() string             { return m.createdAt }
-func (m *mockConfig) Library() string               { return m.library }
-func (m *mockConfig) Secret() string                { return m.secret }
-func (m *mockConfig) Credentials() (string, string) { return m.username, m.password }
-
-var mockedConfig = mockConfig{
-	version:   "1.0.0",
-	hostname:  "localhost",
-	database:  "test.db",
-	id:        "test-id",
-	createdAt: "2025-01-01T00:00:00Z",
-	library:   "test-library",
-	secret:    "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM=",
-	username:  "test-user",
-	password:  "test-password",
-}
-
 func Test_RegisterAgentReturnsError_InvalidParameters(t *testing.T) {
 	model := mockModel()
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	data := Agent{
@@ -100,10 +71,9 @@ func Test_RegisterAgentReturnsError_InvalidParameters(t *testing.T) {
 
 func Test_RegisterAgentReturnsError_InvalidServiceSecret(t *testing.T) {
 	model := mockModel()
-	config := mockedConfig
-	config.secret = "invalid-secret"
+	cfg := config.NewFromData(&config.Data{Secret: "invalid-secret"}, "")
 
-	ctrl := New(model, &config)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	data := Agent{
@@ -122,7 +92,7 @@ func Test_RegisterAgentReturnsError_InvalidServiceSecret(t *testing.T) {
 func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 	model := mockModel()
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	data := Agent{
@@ -151,7 +121,7 @@ func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 func Test_DeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
 	model := mockModel()
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	err := ctrl.DeregisterAgent("non-existent-rid")
@@ -162,7 +132,7 @@ func Test_DeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
 func Test_DeregisterAgentSucceeds(t *testing.T) {
 	model := mockModel()
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	data := Agent{
@@ -184,7 +154,7 @@ func Test_DeregisterAgentSucceeds(t *testing.T) {
 func Test_CreateAgentConfigReturnsError_AgentNotFound(t *testing.T) {
 	model := mockModel()
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	_, err := ctrl.CreateAgentConfig("non-existent-rid")
@@ -195,7 +165,7 @@ func Test_CreateAgentConfigReturnsError_AgentNotFound(t *testing.T) {
 func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 	model := mockModel()
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	data := Agent{
@@ -210,15 +180,15 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 	rid, err := ctrl.RegisterAgent(&data)
 	assert.NoError(t, err, "register agent with valid parameters")
 
-	config, err := ctrl.CreateAgentConfig(rid)
+	cfg, err := ctrl.CreateAgentConfig(rid)
 	assert.NoError(t, err, "create config for existing agent")
-	assert.NotEmpty(t, config, "agent config not empty")
+	assert.NotEmpty(t, cfg, "agent config not empty")
 }
 
 func Test_GetAgentReturnsError_AgentNotFound(t *testing.T) {
 	model := mockModel()
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	_, err := ctrl.GetAgent("non-existent-rid")
@@ -229,7 +199,7 @@ func Test_GetAgentReturnsError_AgentNotFound(t *testing.T) {
 func Test_GetAgentReturnsAgent(t *testing.T) {
 	model := mockModel()
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	data := Agent{
@@ -251,8 +221,9 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 
 func Test_ListAgentsReturnsEmptyList_AgentsNotFound(t *testing.T) {
 	model := mockModel()
+	config := config.NewFromData(&config.Data{Secret: "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM="}, "")
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, config)
 	assert.NotNil(t, ctrl, "create controller")
 
 	agents, err := ctrl.ListAgents()
@@ -263,7 +234,7 @@ func Test_ListAgentsReturnsEmptyList_AgentsNotFound(t *testing.T) {
 func Test_ListAgentsReturnsAgents(t *testing.T) {
 	model := mockModel()
 
-	ctrl := New(model, &mockedConfig)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	data := Agent{
@@ -306,10 +277,11 @@ func Test_RegisterAgentGeneratesCredentialsFile(t *testing.T) {
 		t.Fatalf("failed to create conf dir: %v", err)
 	}
 
-	cfg := mockedConfig
-	cfg.library = tmp
+	cfg := config.NewFromData(&config.Data{
+		Secret: "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM=",
+	}, tmp)
 
-	ctrl := New(model, &cfg)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	data := Agent{
@@ -358,10 +330,11 @@ func Test_DeregisterAgentUpdatesCredentialsFile(t *testing.T) {
 		t.Fatalf("failed to create conf dir: %v", err)
 	}
 
-	cfg := mockedConfig
-	cfg.library = tmp
+	cfg := config.NewFromData(&config.Data{
+		Secret: "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM=",
+	}, tmp)
 
-	ctrl := New(model, &cfg)
+	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
 
 	data := Agent{

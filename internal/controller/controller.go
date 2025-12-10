@@ -17,12 +17,12 @@ type Controller interface {
 }
 
 type controller struct {
-	config config.Config
+	config *config.Config
 	model  model.Model
 }
 
-func New(model model.Model, cfg config.Config) Controller {
-	slog.Debug("Initializing Controller", "model", fmt.Sprintf("%+T", model), "config", fmt.Sprintf("%+T", cfg))
+func New(model model.Model, cfg *config.Config) Controller {
+	slog.Debug("Initializing Controller", "model", fmt.Sprintf("%+T", model), "config", fmt.Sprintf("%+v", cfg))
 
 	return &controller{
 		model:  model,
