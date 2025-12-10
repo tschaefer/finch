@@ -16,7 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (c *controller) marshalAgent(data *Agent) (*model.Agent, error) {
+func (c *Controller) marshalAgent(data *Agent) (*model.Agent, error) {
 	if data.Hostname == "" {
 		return nil, fmt.Errorf("hostname must not be empty")
 	}

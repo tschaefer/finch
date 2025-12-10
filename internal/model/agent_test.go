@@ -9,21 +9,21 @@ import (
 	"gorm.io/gorm"
 )
 
-func mockDatabase() *gorm.DB {
+func newDatabase(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	err = db.AutoMigrate(&Agent{})
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	return db
 }
 
 func Test_CreateAgentReturnsAgent(t *testing.T) {
-	db := mockDatabase()
+	db := newDatabase(t)
 	m := New(db)
 	assert.NotNil(t, m, "create model")
 
@@ -56,7 +56,7 @@ func Test_CreateAgentReturnsAgent(t *testing.T) {
 }
 
 func Test_GetAgentReturnsAgent(t *testing.T) {
-	db := mockDatabase()
+	db := newDatabase(t)
 	m := New(db)
 	assert.NotNil(t, m, "create model")
 
@@ -95,7 +95,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 }
 
 func Test_GetAgentReturnsError_AgentNotFound(t *testing.T) {
-	db := mockDatabase()
+	db := newDatabase(t)
 	m := New(db)
 	assert.NotNil(t, m, "create model")
 
@@ -107,7 +107,7 @@ func Test_GetAgentReturnsError_AgentNotFound(t *testing.T) {
 }
 
 func Test_DeleteAgentRemovesAgent(t *testing.T) {
-	db := mockDatabase()
+	db := newDatabase(t)
 	m := New(db)
 	assert.NotNil(t, m, "create model")
 
@@ -137,7 +137,7 @@ func Test_DeleteAgentRemovesAgent(t *testing.T) {
 }
 
 func Test_ListAgentsReturnsAllAgents(t *testing.T) {
-	db := mockDatabase()
+	db := newDatabase(t)
 	m := New(db)
 	assert.NotNil(t, m, "create model")
 

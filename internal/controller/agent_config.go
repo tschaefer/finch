@@ -244,7 +244,7 @@ type alloyConfigData struct {
 	Labels   []string
 }
 
-func (c *controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, error) {
+func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, error) {
 	password, err := aes.Decrypt(c.config.Secret(), agent.Password)
 	if err != nil {
 		return nil, err

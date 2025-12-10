@@ -31,7 +31,7 @@ http:
 {{- end }}
 `
 
-func (c *controller) generateCredentialsFile() error {
+func (c *Controller) generateCredentialsFile() error {
 	confDir := fmt.Sprintf("%s/traefik/etc/conf.d", c.config.Library())
 	usersFile := fmt.Sprintf("%s/loki-users.yaml", confDir)
 

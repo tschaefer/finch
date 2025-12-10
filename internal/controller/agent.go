@@ -30,15 +30,7 @@ type Agent struct {
 	Profiles       bool     `json:"profiles"`
 }
 
-type ControllerAgent interface {
-	RegisterAgent(agent *Agent) (string, error)
-	DeregisterAgent(rid string) error
-	CreateAgentConfig(rid string) ([]byte, error)
-	ListAgents() ([]map[string]string, error)
-	GetAgent(rid string) (*model.Agent, error)
-}
-
-func (c *controller) RegisterAgent(data *Agent) (string, error) {
+func (c *Controller) RegisterAgent(data *Agent) (string, error) {
 	slog.Debug("Register Agent", "data", fmt.Sprintf("%+v", data))
 
 	agent, err := c.marshalAgent(data)
@@ -68,7 +60,7 @@ func (c *controller) RegisterAgent(data *Agent) (string, error) {
 	return agent.ResourceId, nil
 }
 
-func (c *controller) DeregisterAgent(rid string) error {
+func (c *Controller) DeregisterAgent(rid string) error {
 	slog.Debug("Deregister Agent", "rid", rid)
 
 	agent, err := c.model.GetAgent(&model.Agent{ResourceId: rid})
@@ -92,7 +84,7 @@ func (c *controller) DeregisterAgent(rid string) error {
 	return nil
 }
 
-func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
+func (c *Controller) CreateAgentConfig(rid string) ([]byte, error) {
 	slog.Debug("Create Agent Config", "rid", rid)
 
 	agent, err := c.model.GetAgent(&model.Agent{ResourceId: rid})
@@ -121,7 +113,7 @@ func (c *controller) CreateAgentConfig(rid string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *controller) ListAgents() ([]map[string]string, error) {
+func (c *Controller) ListAgents() ([]map[string]string, error) {
 	slog.Debug("List Agents")
 
 	agents := []model.Agent{}
@@ -142,7 +134,7 @@ func (c *controller) ListAgents() ([]map[string]string, error) {
 	return list, nil
 }
 
-func (c *controller) GetAgent(rid string) (*model.Agent, error) {
+func (c *Controller) GetAgent(rid string) (*model.Agent, error) {
 	slog.Debug("Get Agent", "rid", rid)
 
 	agent, err := c.model.GetAgent(&model.Agent{ResourceId: rid})

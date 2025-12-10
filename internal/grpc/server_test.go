@@ -2,94 +2,49 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tschaefer/finch/api"
+	"github.com/tschaefer/finch/internal/config"
 	"github.com/tschaefer/finch/internal/controller"
+	"github.com/tschaefer/finch/internal/database"
 	"github.com/tschaefer/finch/internal/model"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type mockConfig struct {
-	version   string
-	hostname  string
-	database  string
-	profiler  string
-	id        string
-	createdAt string
-	library   string
-	secret    string
-	username  string
-	password  string
-}
+var testServerCfg = config.NewFromData(&config.Data{
+	Id:        "test-id",
+	Hostname:  "localhost",
+	CreatedAt: "2025-01-01T00:00:00Z",
+	Database:  "sqlite://:memory:",
+	Credentials: config.Credentials{
+		Username: "admin",
+		Password: "password",
+	},
+	Secret: "gpFb8WTh5iELimbX3YfuvRYRh2Z2PHa8Lmoog0a25QQ=",
+}, "")
 
-func (m *mockConfig) Version() string               { return m.version }
-func (m *mockConfig) Hostname() string              { return m.hostname }
-func (m *mockConfig) Database() string              { return m.database }
-func (m *mockConfig) Profiler() string              { return m.profiler }
-func (m *mockConfig) Id() string                    { return m.id }
-func (m *mockConfig) CreatedAt() string             { return m.createdAt }
-func (m *mockConfig) Library() string               { return m.library }
-func (m *mockConfig) Secret() string                { return m.secret }
-func (m *mockConfig) Credentials() (string, string) { return m.username, m.password }
-
-var mockedConfig = mockConfig{
-	version:   "1.0.0",
-	hostname:  "localhost",
-	database:  "test.db",
-	profiler:  "http://localhost:4040",
-	id:        "test-id",
-	createdAt: "2025-01-01T00:00:00Z",
-	library:   "test-library",
-	secret:    "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM=",
-	username:  "test-user",
-	password:  "test-password",
-}
-
-type mockController struct{}
-
-func (m *mockController) RegisterAgent(data *controller.Agent) (string, error) {
-	if data.Hostname == "existing" {
-		return "", controller.ErrAgentAlreadyExists
+func newController(t *testing.T) *controller.Controller {
+	db, err := database.New(testServerCfg)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return "rid:12345", nil
-}
 
-func (m *mockController) DeregisterAgent(rid string) error {
-	if rid == "rid:notfound" {
-		return controller.ErrAgentNotFound
+	err = db.Migrate()
+	if err != nil {
+		t.Fatal(err)
 	}
-	return nil
-}
 
-func (m *mockController) CreateAgentConfig(rid string) ([]byte, error) {
-	if rid == "rid:notfound" {
-		return nil, controller.ErrAgentNotFound
-	}
-	return []byte("config content"), nil
-}
+	model := model.New(db.Connection())
 
-func (m *mockController) ListAgents() ([]map[string]string, error) {
-	return []map[string]string{
-		{"rid": "rid:12345", "hostname": "node1"},
-		{"rid": "rid:67890", "hostname": "node2"},
-	}, nil
-}
-
-func (m *mockController) GetAgent(rid string) (*model.Agent, error) {
-	if rid == "rid:notfound" {
-		return nil, controller.ErrAgentNotFound
-	}
-	return &model.Agent{
-		ResourceId: "rid:12345",
-		Hostname:   "node1",
-	}, nil
+	return controller.New(model, testServerCfg)
 }
 
 func TestRegisterAgentReturnsResourceId(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
 
 	req := &api.RegisterAgentRequest{
 		Hostname:   "test-host",
@@ -101,11 +56,22 @@ func TestRegisterAgentReturnsResourceId(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.Equal(t, "rid:12345", resp.Rid)
+	assert.Contains(t, resp.Rid, "rid:finch:test-id:agent:")
 }
 
 func TestRegisterAgentReturnsError_AgentAlreadyExists(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
+
+	register := func() (*api.RegisterAgentResponse, error) {
+		req := &api.RegisterAgentRequest{
+			Hostname:   "existing",
+			LogSources: []string{"journal://"},
+		}
+		resp, err := server.RegisterAgent(context.Background(), req)
+		return resp, err
+	}
+	_, err := register()
+	assert.NoError(t, err)
 
 	req := &api.RegisterAgentRequest{
 		Hostname:   "existing",
@@ -122,7 +88,7 @@ func TestRegisterAgentReturnsError_AgentAlreadyExists(t *testing.T) {
 }
 
 func TestRegisterAgentReturnsError_InvalidArguments(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
 
 	req := &api.RegisterAgentRequest{
 		Hostname:   "",
@@ -139,10 +105,21 @@ func TestRegisterAgentReturnsError_InvalidArguments(t *testing.T) {
 }
 
 func TestDeregisterAgentSucceeds(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
+
+	register := func() (*api.RegisterAgentResponse, error) {
+		req := &api.RegisterAgentRequest{
+			Hostname:   "existing",
+			LogSources: []string{"journal://"},
+		}
+		resp, err := server.RegisterAgent(context.Background(), req)
+		return resp, err
+	}
+	agent, err := register()
+	assert.NoError(t, err)
 
 	req := &api.DeregisterAgentRequest{
-		Rid: "rid:12345",
+		Rid: agent.Rid,
 	}
 
 	resp, err := server.DeregisterAgent(context.Background(), req)
@@ -152,7 +129,7 @@ func TestDeregisterAgentSucceeds(t *testing.T) {
 }
 
 func TestDeregisterAgentReturnsError_InvalidArguments(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
 
 	req := &api.DeregisterAgentRequest{
 		Rid: "",
@@ -168,7 +145,7 @@ func TestDeregisterAgentReturnsError_InvalidArguments(t *testing.T) {
 }
 
 func TestDeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
 
 	req := &api.DeregisterAgentRequest{
 		Rid: "rid:notfound",
@@ -184,22 +161,33 @@ func TestDeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
 }
 
 func TestGetAgentReturnsAgent(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
+
+	register := func() (*api.RegisterAgentResponse, error) {
+		req := &api.RegisterAgentRequest{
+			Hostname:   "node1",
+			LogSources: []string{"journal://"},
+		}
+		resp, err := server.RegisterAgent(context.Background(), req)
+		return resp, err
+	}
+	agent, err := register()
+	assert.NoError(t, err)
 
 	req := &api.GetAgentRequest{
-		Rid: "rid:12345",
+		Rid: agent.Rid,
 	}
 
 	resp, err := server.GetAgent(context.Background(), req)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.Equal(t, "rid:12345", resp.ResourceId)
+	assert.Equal(t, agent.Rid, resp.ResourceId)
 	assert.Equal(t, "node1", resp.Hostname)
 }
 
 func TestGetAgentReturnsError_InvalidArguments(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
 
 	req := &api.GetAgentRequest{
 		Rid: "",
@@ -215,7 +203,7 @@ func TestGetAgentReturnsError_InvalidArguments(t *testing.T) {
 }
 
 func TestGetAgentReturnsError_AgentNotFound(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
 
 	req := &api.GetAgentRequest{
 		Rid: "rid:notfound",
@@ -231,7 +219,25 @@ func TestGetAgentReturnsError_AgentNotFound(t *testing.T) {
 }
 
 func TestListAgentsReturnsAgentList(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
+
+	register := func(n int) error {
+		for i := range n {
+			req := &api.RegisterAgentRequest{
+				Hostname:   fmt.Sprintf("node%d", i),
+				LogSources: []string{"journal://"},
+			}
+			_, err := server.RegisterAgent(context.Background(), req)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	err := register(2)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	req := &api.ListAgentsRequest{}
 
@@ -240,26 +246,35 @@ func TestListAgentsReturnsAgentList(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Len(t, resp.Agents, 2)
-	assert.Equal(t, "rid:12345", resp.Agents[0].Rid)
-	assert.Equal(t, "node1", resp.Agents[0].Hostname)
 }
 
 func TestGetAgentConfigReturnsConfig(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
+
+	register := func() (*api.RegisterAgentResponse, error) {
+		req := &api.RegisterAgentRequest{
+			Hostname:   "node1",
+			LogSources: []string{"journal://"},
+		}
+		resp, err := server.RegisterAgent(context.Background(), req)
+		return resp, err
+	}
+	agent, err := register()
+	assert.NoError(t, err)
 
 	req := &api.GetAgentConfigRequest{
-		Rid: "rid:12345",
+		Rid: agent.Rid,
 	}
 
 	resp, err := server.GetAgentConfig(context.Background(), req)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.Equal(t, []byte("config content"), resp.Config)
+	assert.Contains(t, string(resp.Config), agent.Rid)
 }
 
 func TestGetAgentConfigReturnsError_InvalidArguments(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
 
 	req := &api.GetAgentConfigRequest{
 		Rid: "",
@@ -275,7 +290,7 @@ func TestGetAgentConfigReturnsError_InvalidArguments(t *testing.T) {
 }
 
 func TestGetAgentConfigReturnsError_AgentNotFound(t *testing.T) {
-	server := NewAgentServer(&mockController{}, &mockedConfig)
+	server := NewAgentServer(newController(t), testServerCfg)
 
 	req := &api.GetAgentConfigRequest{
 		Rid: "rid:notfound",
@@ -291,7 +306,7 @@ func TestGetAgentConfigReturnsError_AgentNotFound(t *testing.T) {
 }
 
 func TestGetServiceInfoReturnsInfo(t *testing.T) {
-	server := NewInfoServer(&mockedConfig)
+	server := NewInfoServer(testServerCfg)
 
 	req := &api.GetServiceInfoRequest{}
 

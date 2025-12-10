@@ -8,57 +8,35 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tschaefer/finch/internal/config"
 )
 
-type mockConfig struct {
-	version   string
-	hostname  string
-	database  string
-	profiler  string
-	id        string
-	createdAt string
-	library   string
-	secret    string
-	username  string
-	password  string
-}
-
-func (m *mockConfig) Version() string               { return m.version }
-func (m *mockConfig) Hostname() string              { return m.hostname }
-func (m *mockConfig) Database() string              { return m.database }
-func (m *mockConfig) Profiler() string              { return m.profiler }
-func (m *mockConfig) Id() string                    { return m.id }
-func (m *mockConfig) CreatedAt() string             { return m.createdAt }
-func (m *mockConfig) Library() string               { return m.library }
-func (m *mockConfig) Secret() string                { return m.secret }
-func (m *mockConfig) Credentials() (string, string) { return m.username, m.password }
-
 func Test_NewReturnsError_InvalidUrlSchema(t *testing.T) {
-	mockedConfig := mockConfig{
-		database: "psql://user:pass@localhost/dbname",
-	}
+	cfg := config.NewFromData(&config.Data{
+		Database: "psql://user:pass@localhost/dbname",
+	}, "")
 
-	_, err := New(&mockedConfig)
+	_, err := New(cfg)
 	wanted := "unsupported database scheme: psql"
 	assert.EqualError(t, err, wanted, "error message")
 }
 
 func Test_NewReturnsError_PathNotExist(t *testing.T) {
-	mockedConfig := mockConfig{
-		database: "sqlite:///nonexistent/path/to/database.db",
-	}
+	cfg := config.NewFromData(&config.Data{
+		Database: "sqlite:///nonexistent/path/to/database.db",
+	}, "")
 
-	_, err := New(&mockedConfig)
+	_, err := New(cfg)
 	wanted := "unable to open database file: no such file or directory"
 	assert.EqualError(t, err, wanted, "error message")
 }
 
 func Test_ConnectionReturnsGormDB(t *testing.T) {
-	mockedConfig := mockConfig{
-		database: "sqlite://:memory:",
-	}
+	cfg := config.NewFromData(&config.Data{
+		Database: "sqlite://:memory:",
+	}, "")
 
-	db, err := New(&mockedConfig)
+	db, err := New(cfg)
 	assert.NoError(t, err, "new database instance")
 	assert.NotNil(t, db, "database instance")
 
@@ -68,11 +46,11 @@ func Test_ConnectionReturnsGormDB(t *testing.T) {
 }
 
 func Test_MigrateSucceeds(t *testing.T) {
-	mockedConfig := mockConfig{
-		database: "sqlite://:memory:",
-	}
+	cfg := config.NewFromData(&config.Data{
+		Database: "sqlite://:memory:",
+	}, "")
 
-	db, err := New(&mockedConfig)
+	db, err := New(cfg)
 	assert.NoError(t, err, "new database instance")
 
 	err = db.Migrate()

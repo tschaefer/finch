@@ -23,22 +23,18 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-type Manager interface {
-	Run(listenAddr string)
+type Manager struct {
+	config     *config.Config
+	database   *database.Database
+	model      *model.Model
+	controller *controller.Controller
+	profiler   *profiler.Profiler
 }
 
-type manager struct {
-	config     config.Config
-	database   database.Database
-	model      model.Model
-	controller controller.Controller
-	profiler   profiler.Profiler
-}
-
-func New(cfgFile string) (Manager, error) {
+func New(cfgFile string) (*Manager, error) {
 	slog.Debug("Initializing Manager", "cfgFile", cfgFile)
 
-	cfg, err := config.Read(cfgFile)
+	cfg, err := config.NewFromFile(cfgFile)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +56,7 @@ func New(cfgFile string) (Manager, error) {
 	model := model.New(db.Connection())
 	ctrl := controller.New(model, cfg)
 
-	return &manager{
+	return &Manager{
 		config:     cfg,
 		database:   db,
 		model:      model,
@@ -69,7 +65,7 @@ func New(cfgFile string) (Manager, error) {
 	}, nil
 }
 
-func (m *manager) Run(listenAddr string) {
+func (m *Manager) Run(listenAddr string) {
 	slog.Debug("Running Manager", "listenAddr", listenAddr)
 
 	stop := make(chan os.Signal, 1)
@@ -91,7 +87,7 @@ func (m *manager) Run(listenAddr string) {
 	slog.Info("Server stopped")
 }
 
-func (m *manager) runGRPCServer(listenAddr string) (*grpc.Server, error) {
+func (m *Manager) runGRPCServer(listenAddr string) (*grpc.Server, error) {
 	listen, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		slog.Error("Failed to listen: " + err.Error())
