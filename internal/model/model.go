@@ -6,16 +6,12 @@ package model
 
 import "gorm.io/gorm"
 
-type Model interface {
-	ModelAgent
-}
-
-type model struct {
+type Model struct {
 	db *gorm.DB
 }
 
-func New(db *gorm.DB) Model {
-	return &model{
+func New(db *gorm.DB) *Model {
+	return &Model{
 		db: db,
 	}
 }

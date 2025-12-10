@@ -41,7 +41,7 @@ var (
 	ErrAgentNotFound = errors.New("agent not found")
 )
 
-func (m *model) CreateAgent(agent *Agent) (*Agent, error) {
+func (m *Model) CreateAgent(agent *Agent) (*Agent, error) {
 	if err := m.db.Create(agent).Error; err != nil {
 		return nil, err
 	}
@@ -49,11 +49,11 @@ func (m *model) CreateAgent(agent *Agent) (*Agent, error) {
 	return agent, nil
 }
 
-func (m *model) DeleteAgent(agent *Agent) error {
+func (m *Model) DeleteAgent(agent *Agent) error {
 	return m.db.Delete(agent).Error
 }
 
-func (m *model) GetAgent(agent *Agent) (*Agent, error) {
+func (m *Model) GetAgent(agent *Agent) (*Agent, error) {
 	if err := m.db.Where(agent).First(agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrAgentNotFound
@@ -64,7 +64,7 @@ func (m *model) GetAgent(agent *Agent) (*Agent, error) {
 	return agent, nil
 }
 
-func (m *model) ListAgents(agents *[]Agent) (*[]Agent, error) {
+func (m *Model) ListAgents(agents *[]Agent) (*[]Agent, error) {
 	if err := m.db.Find(agents).Error; err != nil {
 		return nil, err
 	}

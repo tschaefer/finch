@@ -24,7 +24,7 @@ var cfg = config.NewFromData(&config.Data{
 	Id:     "test-id",
 }, "")
 
-func mockModel() model.Model {
+func newModel() *model.Model {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
@@ -40,7 +40,7 @@ func mockModel() model.Model {
 }
 
 func Test_RegisterAgentReturnsError_InvalidParameters(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
@@ -70,7 +70,7 @@ func Test_RegisterAgentReturnsError_InvalidParameters(t *testing.T) {
 }
 
 func Test_RegisterAgentReturnsError_InvalidServiceSecret(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 	cfg := config.NewFromData(&config.Data{Secret: "invalid-secret"}, "")
 
 	ctrl := New(model, cfg)
@@ -90,7 +90,7 @@ func Test_RegisterAgentReturnsError_InvalidServiceSecret(t *testing.T) {
 }
 
 func Test_RegisterAgentReturnsResourceId(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
@@ -119,7 +119,7 @@ func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 }
 
 func Test_DeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
@@ -130,7 +130,7 @@ func Test_DeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
 }
 
 func Test_DeregisterAgentSucceeds(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
@@ -152,7 +152,7 @@ func Test_DeregisterAgentSucceeds(t *testing.T) {
 }
 
 func Test_CreateAgentConfigReturnsError_AgentNotFound(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
@@ -163,7 +163,7 @@ func Test_CreateAgentConfigReturnsError_AgentNotFound(t *testing.T) {
 }
 
 func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
@@ -186,7 +186,7 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 }
 
 func Test_GetAgentReturnsError_AgentNotFound(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
@@ -197,7 +197,7 @@ func Test_GetAgentReturnsError_AgentNotFound(t *testing.T) {
 }
 
 func Test_GetAgentReturnsAgent(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
@@ -220,7 +220,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 }
 
 func Test_ListAgentsReturnsEmptyList_AgentsNotFound(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 	config := config.NewFromData(&config.Data{Secret: "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM="}, "")
 
 	ctrl := New(model, config)
@@ -232,7 +232,7 @@ func Test_ListAgentsReturnsEmptyList_AgentsNotFound(t *testing.T) {
 }
 
 func Test_ListAgentsReturnsAgents(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	ctrl := New(model, cfg)
 	assert.NotNil(t, ctrl, "create controller")
@@ -269,7 +269,7 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 }
 
 func Test_RegisterAgentGeneratesCredentialsFile(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	tmp := t.TempDir()
 	confDir := filepath.Join(tmp, "traefik", "etc", "conf.d")
@@ -322,7 +322,7 @@ func Test_RegisterAgentGeneratesCredentialsFile(t *testing.T) {
 }
 
 func Test_DeregisterAgentUpdatesCredentialsFile(t *testing.T) {
-	model := mockModel()
+	model := newModel()
 
 	tmp := t.TempDir()
 	confDir := filepath.Join(tmp, "traefik", "etc", "conf.d")

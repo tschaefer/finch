@@ -26,7 +26,7 @@ import (
 type Manager struct {
 	config     *config.Config
 	database   *database.Database
-	model      model.Model
+	model      *model.Model
 	controller controller.Controller
 	profiler   profiler.Profiler
 }
