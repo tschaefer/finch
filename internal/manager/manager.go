@@ -5,11 +5,10 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package manager
 
 import (
+	"context"
 	"log/slog"
 	"net"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/tschaefer/finch/api"
 	"github.com/tschaefer/finch/internal/config"
@@ -65,11 +64,11 @@ func New(cfgFile string) (*Manager, error) {
 	}, nil
 }
 
-func (m *Manager) Run(listenAddr string) {
+func (m *Manager) Run(ctx context.Context, listenAddr string) {
 	slog.Debug("Running Manager", "listenAddr", listenAddr)
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	slog.Info("Starting Finch management server", "release", version.Release(), "commit", version.Commit())
 	slog.Info("Listening on " + listenAddr)
@@ -80,7 +79,7 @@ func (m *Manager) Run(listenAddr string) {
 		os.Exit(1)
 	}
 
-	<-stop
+	<-ctx.Done()
 	slog.Info("Shutting down server...")
 
 	grpcServer.GracefulStop()

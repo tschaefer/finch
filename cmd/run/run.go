@@ -5,6 +5,10 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package run
 
 import (
+	"context"
+	"os/signal"
+	"syscall"
+
 	"github.com/spf13/cobra"
 	"github.com/tschaefer/finch/internal/manager"
 )
@@ -36,5 +40,8 @@ func runCmd(cmd *cobra.Command, args []string) {
 	manager, err := manager.New(config)
 	cobra.CheckErr(err)
 
-	manager.Run(listen)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	manager.Run(ctx, listen)
 }
