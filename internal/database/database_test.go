@@ -46,11 +46,11 @@ func Test_ConnectionReturnsGormDB(t *testing.T) {
 }
 
 func Test_MigrateSucceeds(t *testing.T) {
-	config := config.NewFromData(&config.Data{
+	cfg := config.NewFromData(&config.Data{
 		Database: "sqlite://:memory:",
 	}, "")
 
-	db, err := New(config)
+	db, err := New(cfg)
 	assert.NoError(t, err, "new database instance")
 
 	err = db.Migrate()

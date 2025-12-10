@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -223,7 +224,7 @@ func TestListAgentsReturnsAgentList(t *testing.T) {
 	register := func(n int) error {
 		for i := range n {
 			req := &api.RegisterAgentRequest{
-				Hostname:   "node" + string(rune(i)),
+				Hostname:   fmt.Sprintf("node%d", i),
 				LogSources: []string{"journal://"},
 			}
 			_, err := server.RegisterAgent(context.Background(), req)
