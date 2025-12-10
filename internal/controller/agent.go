@@ -30,14 +30,6 @@ type Agent struct {
 	Profiles       bool     `json:"profiles"`
 }
 
-type ControllerAgent interface {
-	RegisterAgent(agent *Agent) (string, error)
-	DeregisterAgent(rid string) error
-	CreateAgentConfig(rid string) ([]byte, error)
-	ListAgents() ([]map[string]string, error)
-	GetAgent(rid string) (*model.Agent, error)
-}
-
 func (c *Controller) RegisterAgent(data *Agent) (string, error) {
 	slog.Debug("Register Agent", "data", fmt.Sprintf("%+v", data))
 

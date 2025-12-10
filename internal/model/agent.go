@@ -30,13 +30,6 @@ type Agent struct {
 	Username       string     `gorm:"not null" json:"-"`
 }
 
-type ModelAgent interface {
-	CreateAgent(agent *Agent) (*Agent, error)
-	DeleteAgent(agent *Agent) error
-	GetAgent(agent *Agent) (*Agent, error)
-	ListAgents(agent *[]Agent) (*[]Agent, error)
-}
-
 var (
 	ErrAgentNotFound = errors.New("agent not found")
 )
