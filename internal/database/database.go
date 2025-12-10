@@ -17,16 +17,11 @@ import (
 	"github.com/tschaefer/finch/internal/model"
 )
 
-type Database interface {
-	Connection() *gorm.DB
-	Migrate() error
-}
-
-type database struct {
+type Database struct {
 	connection *gorm.DB
 }
 
-func New(config *config.Config) (Database, error) {
+func New(config *config.Config) (*Database, error) {
 	slog.Debug("Initializing database", "config", fmt.Sprintf("%+v", config))
 
 	uri, err := url.Parse(config.Database())
@@ -63,18 +58,18 @@ func New(config *config.Config) (Database, error) {
 		return nil, err
 	}
 
-	return &database{
+	return &Database{
 		connection: connection,
 	}, nil
 }
 
-func (d *database) Connection() *gorm.DB {
+func (d *Database) Connection() *gorm.DB {
 	slog.Debug("Retrieving database connection")
 
 	return d.connection
 }
 
-func (d *database) Migrate() error {
+func (d *Database) Migrate() error {
 	slog.Debug("Migrating database schema")
 
 	if d.connection.Migrator().HasColumn(&model.Agent{}, "tags") {
