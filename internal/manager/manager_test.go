@@ -1,0 +1,150 @@
+package manager
+
+import (
+	"context"
+	"encoding/json"
+	"net"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/tschaefer/finch/internal/config"
+)
+
+func Test_NewReturnsManager(t *testing.T) {
+	data := config.Data{
+		CreatedAt: "2025-01-01T00:00:00Z",
+		Database:  "sqlite://:memory:",
+		Hostname:  "finch.example.com",
+		Id:        "8d134b24c2541730",
+		Secret:    "C7LVMO6YY0ZfZvlEayQJR0zOE7JF8g+nrYgrcvetIbU=",
+		Version:   "1.4.0",
+		Credentials: config.Credentials{
+			Username: "admin",
+			Password: "gnKuT>m8T@3hX",
+		},
+	}
+	json, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpDir := t.TempDir()
+	cfgFile := tmpDir + "/finch.json"
+	err = os.WriteFile(cfgFile, json, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m, err := New(cfgFile)
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
+}
+
+func Test_NewReturnsError_MissingConfigFile(t *testing.T) {
+	_, err := New("nonexistent_file.json")
+	assert.Error(t, err)
+}
+
+func Test_NewReturnsError_InvalidConfigFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfgFile := tmpDir + "/finch.json"
+	err := os.WriteFile(cfgFile, []byte("invalid json"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m, err := New(cfgFile)
+	assert.Nil(t, m)
+	assert.Error(t, err)
+}
+
+func Test_NewReturnsError_InvalidDatabaseURL(t *testing.T) {
+	data := config.Data{
+		CreatedAt: "2025-01-01T00:00:00Z",
+		Database:  "invalid_db_url",
+		Hostname:  "finch.example.com",
+		Id:        "8d134b24c2541730",
+		Secret:    "C7LVMO6YY0ZfZvlEayQJR0zOE7JF8g+nrYgrcvetIbU=",
+		Version:   "1.4.0",
+		Credentials: config.Credentials{
+			Username: "admin",
+			Password: "gnKuT>m8T@3hX",
+		},
+	}
+	json, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpDir := t.TempDir()
+	cfgFile := tmpDir + "/finch.json"
+	err = os.WriteFile(cfgFile, json, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m, err := New(cfgFile)
+	assert.Nil(t, m)
+	assert.Error(t, err)
+}
+
+func Test_RunSucceeds(t *testing.T) {
+	data := config.Data{
+		CreatedAt: "2025-01-01T00:00:00Z",
+		Database:  "sqlite://:memory:",
+		Hostname:  "finch.example.com",
+		Id:        "8d134b24c2541730",
+		Secret:    "C7LVMO6YY0ZfZvlEayQJR0zOE7JF8g+nrYgrcvetIbU=",
+		Version:   "1.4.0",
+		Credentials: config.Credentials{
+			Username: "admin",
+			Password: "gnKuT>m8T@3hX",
+		},
+	}
+	json, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpDir := t.TempDir()
+	cfgFile := tmpDir + "/finch.json"
+	err = os.WriteFile(cfgFile, json, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m, err := New(cfgFile)
+	assert.NoError(t, err)
+	assert.NotNil(t, m)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var port string
+	for _, port = range []string{"11111", "22222", "33333", "44444", "55555", "66666"} {
+		conn, _ := net.Dial("tcp", net.JoinHostPort("127.0.0.1", port))
+		if conn == nil {
+			break
+		}
+		_ = conn.Close()
+	}
+
+	go m.Run(ctx, net.JoinHostPort("127.0.0.1", port))
+
+	var conn net.Conn
+	for range 50 {
+		conn, err = net.Dial("tcp", net.JoinHostPort("127.0.0.1", port))
+		if conn != nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, conn)
+	_ = conn.Close()
+
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+}
