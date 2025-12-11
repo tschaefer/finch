@@ -43,17 +43,28 @@ func newController(t *testing.T) *controller.Controller {
 	return controller.New(model, testServerCfg)
 }
 
+func registerAgent(t *testing.T, server *AgentServer, hostname string) *api.RegisterAgentResponse {
+	req := &api.RegisterAgentRequest{
+		Hostname:   hostname,
+		LogSources: []string{"journal://"},
+	}
+	resp, err := server.RegisterAgent(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return resp
+
+}
+
 func TestRegisterAgentReturnsResourceId(t *testing.T) {
 	server := NewAgentServer(newController(t), testServerCfg)
 
 	req := &api.RegisterAgentRequest{
 		Hostname:   "test-host",
 		LogSources: []string{"journal://"},
-		Metrics:    true,
 	}
-
 	resp, err := server.RegisterAgent(context.Background(), req)
-
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Contains(t, resp.Rid, "rid:finch:test-id:agent:")
@@ -62,24 +73,13 @@ func TestRegisterAgentReturnsResourceId(t *testing.T) {
 func TestRegisterAgentReturnsError_AgentAlreadyExists(t *testing.T) {
 	server := NewAgentServer(newController(t), testServerCfg)
 
-	register := func() (*api.RegisterAgentResponse, error) {
-		req := &api.RegisterAgentRequest{
-			Hostname:   "existing",
-			LogSources: []string{"journal://"},
-		}
-		resp, err := server.RegisterAgent(context.Background(), req)
-		return resp, err
-	}
-	_, err := register()
-	assert.NoError(t, err)
+	_ = registerAgent(t, server, "existing")
 
 	req := &api.RegisterAgentRequest{
 		Hostname:   "existing",
 		LogSources: []string{"journal://"},
 	}
-
 	resp, err := server.RegisterAgent(context.Background(), req)
-
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	st, ok := status.FromError(err)
@@ -96,7 +96,6 @@ func TestRegisterAgentReturnsError_InvalidArguments(t *testing.T) {
 	}
 
 	resp, err := server.RegisterAgent(context.Background(), req)
-
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	st, ok := status.FromError(err)
@@ -107,23 +106,12 @@ func TestRegisterAgentReturnsError_InvalidArguments(t *testing.T) {
 func TestDeregisterAgentSucceeds(t *testing.T) {
 	server := NewAgentServer(newController(t), testServerCfg)
 
-	register := func() (*api.RegisterAgentResponse, error) {
-		req := &api.RegisterAgentRequest{
-			Hostname:   "existing",
-			LogSources: []string{"journal://"},
-		}
-		resp, err := server.RegisterAgent(context.Background(), req)
-		return resp, err
-	}
-	agent, err := register()
-	assert.NoError(t, err)
+	agent := registerAgent(t, server, "to-be-removed")
 
 	req := &api.DeregisterAgentRequest{
 		Rid: agent.Rid,
 	}
-
 	resp, err := server.DeregisterAgent(context.Background(), req)
-
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 }
@@ -134,9 +122,7 @@ func TestDeregisterAgentReturnsError_InvalidArguments(t *testing.T) {
 	req := &api.DeregisterAgentRequest{
 		Rid: "",
 	}
-
 	resp, err := server.DeregisterAgent(context.Background(), req)
-
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	st, ok := status.FromError(err)
@@ -150,9 +136,7 @@ func TestDeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
 	req := &api.DeregisterAgentRequest{
 		Rid: "rid:notfound",
 	}
-
 	resp, err := server.DeregisterAgent(context.Background(), req)
-
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	st, ok := status.FromError(err)
@@ -163,23 +147,12 @@ func TestDeregisterAgentReturnsError_AgentNotFound(t *testing.T) {
 func TestGetAgentReturnsAgent(t *testing.T) {
 	server := NewAgentServer(newController(t), testServerCfg)
 
-	register := func() (*api.RegisterAgentResponse, error) {
-		req := &api.RegisterAgentRequest{
-			Hostname:   "node1",
-			LogSources: []string{"journal://"},
-		}
-		resp, err := server.RegisterAgent(context.Background(), req)
-		return resp, err
-	}
-	agent, err := register()
-	assert.NoError(t, err)
+	agent := registerAgent(t, server, "node1")
 
 	req := &api.GetAgentRequest{
 		Rid: agent.Rid,
 	}
-
 	resp, err := server.GetAgent(context.Background(), req)
-
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, agent.Rid, resp.ResourceId)
@@ -192,9 +165,7 @@ func TestGetAgentReturnsError_InvalidArguments(t *testing.T) {
 	req := &api.GetAgentRequest{
 		Rid: "",
 	}
-
 	resp, err := server.GetAgent(context.Background(), req)
-
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	st, ok := status.FromError(err)
@@ -208,9 +179,7 @@ func TestGetAgentReturnsError_AgentNotFound(t *testing.T) {
 	req := &api.GetAgentRequest{
 		Rid: "rid:notfound",
 	}
-
 	resp, err := server.GetAgent(context.Background(), req)
-
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	st, ok := status.FromError(err)
@@ -221,28 +190,12 @@ func TestGetAgentReturnsError_AgentNotFound(t *testing.T) {
 func TestListAgentsReturnsAgentList(t *testing.T) {
 	server := NewAgentServer(newController(t), testServerCfg)
 
-	register := func(n int) error {
-		for i := range n {
-			req := &api.RegisterAgentRequest{
-				Hostname:   fmt.Sprintf("node%d", i),
-				LogSources: []string{"journal://"},
-			}
-			_, err := server.RegisterAgent(context.Background(), req)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	err := register(2)
-	if err != nil {
-		t.Fatal(err)
+	for i := range 2 {
+		registerAgent(t, server, fmt.Sprintf("node%d", i+1))
 	}
 
 	req := &api.ListAgentsRequest{}
-
 	resp, err := server.ListAgents(context.Background(), req)
-
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Len(t, resp.Agents, 2)
@@ -251,23 +204,12 @@ func TestListAgentsReturnsAgentList(t *testing.T) {
 func TestGetAgentConfigReturnsConfig(t *testing.T) {
 	server := NewAgentServer(newController(t), testServerCfg)
 
-	register := func() (*api.RegisterAgentResponse, error) {
-		req := &api.RegisterAgentRequest{
-			Hostname:   "node1",
-			LogSources: []string{"journal://"},
-		}
-		resp, err := server.RegisterAgent(context.Background(), req)
-		return resp, err
-	}
-	agent, err := register()
-	assert.NoError(t, err)
+	agent := registerAgent(t, server, "node-config")
 
 	req := &api.GetAgentConfigRequest{
 		Rid: agent.Rid,
 	}
-
 	resp, err := server.GetAgentConfig(context.Background(), req)
-
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Contains(t, string(resp.Config), agent.Rid)
@@ -279,9 +221,7 @@ func TestGetAgentConfigReturnsError_InvalidArguments(t *testing.T) {
 	req := &api.GetAgentConfigRequest{
 		Rid: "",
 	}
-
 	resp, err := server.GetAgentConfig(context.Background(), req)
-
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	st, ok := status.FromError(err)
@@ -295,9 +235,7 @@ func TestGetAgentConfigReturnsError_AgentNotFound(t *testing.T) {
 	req := &api.GetAgentConfigRequest{
 		Rid: "rid:notfound",
 	}
-
 	resp, err := server.GetAgentConfig(context.Background(), req)
-
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	st, ok := status.FromError(err)
@@ -309,9 +247,7 @@ func TestGetServiceInfoReturnsInfo(t *testing.T) {
 	server := NewInfoServer(testServerCfg)
 
 	req := &api.GetServiceInfoRequest{}
-
 	resp, err := server.GetServiceInfo(context.Background(), req)
-
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, "test-id", resp.Id)

@@ -5,8 +5,6 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package config
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,53 +27,41 @@ func Test_ReadReturnsError_RelativeFilePath(t *testing.T) {
 }
 
 func Test_ReadReturnsError_InvalidJSON(t *testing.T) {
-	f, _ := os.CreateTemp("", "invalid.json")
-	defer func() {
-		_ = os.Remove(f.Name())
-	}()
-	_, _ = fmt.Fprintf(f, `- invalid json`)
-
-	_, err := NewFromFile(f.Name())
-	assert.Error(t, err, "read config file")
+	_, err := NewFromString(`- invalid json`, "")
+	assert.Error(t, err, "read config string")
 
 	wanted := "failed to unmarshal configuration file"
 	assert.Contains(t, err.Error(), wanted, "error message")
 }
 
 func Test_ReadReturnsError_MissingField(t *testing.T) {
-	f, _ := os.CreateTemp("", "missing_field.json")
-	defer func() {
-		_ = os.Remove(f.Name())
-	}()
-	_, _ = fmt.Fprintf(f, `{"version": "1.0", "hostname": "localhost"}`)
-
-	_, err := NewFromFile(f.Name())
-	assert.Error(t, err, "read config file")
+	_, err := NewFromString(`{"version": "1.0", "hostname": "localhost"}`, "")
+	assert.Error(t, err, "read config string")
 
 	wanted := "invalid configuration data, missing field: CreatedAt"
 	assert.Contains(t, err.Error(), wanted, "error message")
 }
 
 func Test_ReadReturnsError_MissingCredentialsField(t *testing.T) {
-	f, _ := os.CreateTemp("", "missing_credentials.json")
-	defer func() {
-		_ = os.Remove(f.Name())
-	}()
-	_, _ = fmt.Fprintf(f, `{"version": "1.0", "hostname": "localhost", "created_at": "2023-10-01T00:00:00Z", "id": "12345", "database": "testdb", "secret": "secret", "credentials": { "username": "user"}}`)
-
-	_, err := NewFromFile(f.Name())
-	assert.Error(t, err, "read config file")
+	_, err := NewFromString(`{
+		"version": "1.0",
+		"hostname": "localhost",
+		"created_at": "2023-10-01T00:00:00Z",
+		"id": "12345",
+		"database": "testdb",
+		"secret": "secret",
+		"credentials": {
+			"username": "user"
+		}
+	}`, "")
+	assert.Error(t, err, "read config string")
 
 	wanted := "invalid configuration data, missing field: Credentials.Password"
 	assert.Contains(t, err.Error(), wanted, "error message")
 }
 
 func Test_ReadReturnsConfig(t *testing.T) {
-	f, _ := os.CreateTemp("", "valid_config.json")
-	defer func() {
-		_ = os.Remove(f.Name())
-	}()
-	_, _ = fmt.Fprintf(f, `{
+	cfg, err := NewFromString(`{
 		"created_at": "2023-10-01T00:00:00Z",
 		"database": "testdb",
 		"hostname": "localhost",
@@ -86,17 +72,15 @@ func Test_ReadReturnsConfig(t *testing.T) {
 			"username": "user",
 			"password": "pass"
 		}
-	}`)
+	}`, "")
+	assert.NoError(t, err, "read config string")
 
-	config, err := NewFromFile(f.Name())
-	assert.NoError(t, err, "read config file")
-
-	assert.Equal(t, "1.0", config.Version(), "version")
-	assert.Equal(t, "localhost", config.Hostname(), "hostname")
-	assert.Equal(t, "testdb", config.Database(), "database")
-	assert.Equal(t, "12345", config.Id(), "id")
-	assert.Equal(t, "secret", config.Secret(), "secret")
-	username, password := config.Credentials()
+	assert.Equal(t, "1.0", cfg.Version(), "version")
+	assert.Equal(t, "localhost", cfg.Hostname(), "hostname")
+	assert.Equal(t, "testdb", cfg.Database(), "database")
+	assert.Equal(t, "12345", cfg.Id(), "id")
+	assert.Equal(t, "secret", cfg.Secret(), "secret")
+	username, password := cfg.Credentials()
 	assert.Equal(t, "user", username, "credentials username")
 	assert.Equal(t, "pass", password, "credentials password")
 }

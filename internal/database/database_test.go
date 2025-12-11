@@ -83,7 +83,7 @@ func Test_MigrateSucceeds(t *testing.T) {
 		"username",
 	}
 
-	assert.GreaterOrEqual(t, len(results), len(columns), "agents table should have at least the expected number of columns")
+	assert.Equal(t, len(results), len(columns), "agents table should have correct number of columns")
 	for _, column := range columns {
 		found := false
 		for _, row := range results {

@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2025 Tobias Schäfer. All rights reserved.
+Licensed under the MIT License, see LICENSE file in the project root for details.
+*/
 package manager
 
 import (
@@ -12,6 +16,22 @@ import (
 	"github.com/tschaefer/finch/internal/config"
 )
 
+func createConfigFile(t *testing.T, data any) string {
+	json, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpDir := t.TempDir()
+	cfgFile := tmpDir + "/finch.json"
+	err = os.WriteFile(cfgFile, json, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return cfgFile
+}
+
 func Test_NewReturnsManager(t *testing.T) {
 	data := config.Data{
 		CreatedAt: "2025-01-01T00:00:00Z",
@@ -25,18 +45,7 @@ func Test_NewReturnsManager(t *testing.T) {
 			Password: "gnKuT>m8T@3hX",
 		},
 	}
-	json, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	tmpDir := t.TempDir()
-	cfgFile := tmpDir + "/finch.json"
-	err = os.WriteFile(cfgFile, json, 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	cfgFile := createConfigFile(t, data)
 	m, err := New(cfgFile)
 	assert.NoError(t, err)
 	assert.NotNil(t, m)
@@ -48,13 +57,7 @@ func Test_NewReturnsError_MissingConfigFile(t *testing.T) {
 }
 
 func Test_NewReturnsError_InvalidConfigFile(t *testing.T) {
-	tmpDir := t.TempDir()
-	cfgFile := tmpDir + "/finch.json"
-	err := os.WriteFile(cfgFile, []byte("invalid json"), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	cfgFile := createConfigFile(t, "invalid json")
 	m, err := New(cfgFile)
 	assert.Nil(t, m)
 	assert.Error(t, err)
@@ -73,18 +76,7 @@ func Test_NewReturnsError_InvalidDatabaseURL(t *testing.T) {
 			Password: "gnKuT>m8T@3hX",
 		},
 	}
-	json, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	tmpDir := t.TempDir()
-	cfgFile := tmpDir + "/finch.json"
-	err = os.WriteFile(cfgFile, json, 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	cfgFile := createConfigFile(t, data)
 	m, err := New(cfgFile)
 	assert.Nil(t, m)
 	assert.Error(t, err)
@@ -103,18 +95,7 @@ func Test_RunSucceeds(t *testing.T) {
 			Password: "gnKuT>m8T@3hX",
 		},
 	}
-	json, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	tmpDir := t.TempDir()
-	cfgFile := tmpDir + "/finch.json"
-	err = os.WriteFile(cfgFile, json, 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	cfgFile := createConfigFile(t, data)
 	m, err := New(cfgFile)
 	assert.NoError(t, err)
 	assert.NotNil(t, m)
