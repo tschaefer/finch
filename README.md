@@ -1,4 +1,10 @@
-# The Minimal Observability Infrastructure [![Go Report Card](https://goreportcard.com/badge/github.com/tschaefer/finch)](https://goreportcard.com/report/github.com/tschaefer/finch)
+# The Minimal Observability Infrastructure 
+
+[![Tag](https://img.shields.io/github/tag/tschaefer/finch.svg)](https://github.com/tschaefer/finch/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tschaefer/finch)](https://goreportcard.com/report/github.com/tschaefer/finch)
+[![Coverage](https://img.shields.io/codecov/c/github/tschaefer/finch)](https://codecov.io/gh/tschaefer/finch)
+[![Contributors](https://img.shields.io/github/contributors/tschaefer/finch)](https://github.com/tschaefer/finch/graphs/contributors)
+[![License](https://img.shields.io/github/license/tschaefer/finch)](./LICENSE)
 
 **Finch** is the management service for registering observability agents and
 providing related configuration. It is designed to be minimal and easy to use.
