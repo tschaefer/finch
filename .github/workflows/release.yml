@@ -38,7 +38,7 @@ jobs:
         with:
           images: ghcr.io/tschaefer/finch${{ github.tag }}
 
-      - name: Build and push Docker image 🚢
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6.18.0
         with:
           context: .
@@ -49,3 +49,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=The Minimal Observability Infrastructure.
