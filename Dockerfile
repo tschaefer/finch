@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.24-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25.5-trixie AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc-aarch64-linux-gnu libc6-dev-arm64-cross \
@@ -22,7 +22,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     fi && \
     make dist GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
-FROM --platform=$BUILDPLATFORM debian:bookworm-slim
+FROM --platform=$BUILDPLATFORM debian:trixie-20251208-slim
 
 ARG TARGETOS
 ARG TARGETARCH
