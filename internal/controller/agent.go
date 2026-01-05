@@ -153,3 +153,34 @@ func (c *Controller) GetAgent(rid string) (*model.Agent, error) {
 
 	return agent, nil
 }
+
+func (c *Controller) UpdateAgent(rid string, data *Agent) error {
+	slog.Debug("Update Agent", "rid", rid, "data", fmt.Sprintf("%+v", data))
+
+	agent, err := c.model.GetAgent(&model.Agent{ResourceId: rid})
+	if err != nil {
+		if errors.Is(err, model.ErrAgentNotFound) {
+			return ErrAgentNotFound
+		}
+		return err
+	}
+
+	data.Hostname = agent.Hostname
+	updated, err := c.marshalAgent(data)
+	if err != nil {
+		return err
+	}
+
+	agent.Labels = updated.Labels
+	agent.LogSources = updated.LogSources
+	agent.Metrics = updated.Metrics
+	agent.MetricsTargets = updated.MetricsTargets
+	agent.Profiles = updated.Profiles
+
+	_, err = c.model.UpdateAgent(agent)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

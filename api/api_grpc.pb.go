@@ -24,6 +24,7 @@ const (
 	AgentService_GetAgent_FullMethodName        = "/finch.AgentService/GetAgent"
 	AgentService_ListAgents_FullMethodName      = "/finch.AgentService/ListAgents"
 	AgentService_GetAgentConfig_FullMethodName  = "/finch.AgentService/GetAgentConfig"
+	AgentService_UpdateAgent_FullMethodName     = "/finch.AgentService/UpdateAgent"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -35,6 +36,7 @@ type AgentServiceClient interface {
 	GetAgent(ctx context.Context, in *GetAgentRequest, opts ...grpc.CallOption) (*GetAgentResponse, error)
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
 	GetAgentConfig(ctx context.Context, in *GetAgentConfigRequest, opts ...grpc.CallOption) (*GetAgentConfigResponse, error)
+	UpdateAgent(ctx context.Context, in *UpdateAgentRequest, opts ...grpc.CallOption) (*UpdateAgentResponse, error)
 }
 
 type agentServiceClient struct {
@@ -95,6 +97,16 @@ func (c *agentServiceClient) GetAgentConfig(ctx context.Context, in *GetAgentCon
 	return out, nil
 }
 
+func (c *agentServiceClient) UpdateAgent(ctx context.Context, in *UpdateAgentRequest, opts ...grpc.CallOption) (*UpdateAgentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateAgentResponse)
+	err := c.cc.Invoke(ctx, AgentService_UpdateAgent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type AgentServiceServer interface {
 	GetAgent(context.Context, *GetAgentRequest) (*GetAgentResponse, error)
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
 	GetAgentConfig(context.Context, *GetAgentConfigRequest) (*GetAgentConfigResponse, error)
+	UpdateAgent(context.Context, *UpdateAgentRequest) (*UpdateAgentResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedAgentServiceServer) ListAgents(context.Context, *ListAgentsRe
 }
 func (UnimplementedAgentServiceServer) GetAgentConfig(context.Context, *GetAgentConfigRequest) (*GetAgentConfigResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAgentConfig not implemented")
+}
+func (UnimplementedAgentServiceServer) UpdateAgent(context.Context, *UpdateAgentRequest) (*UpdateAgentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateAgent not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -240,6 +256,24 @@ func _AgentService_GetAgentConfig_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_UpdateAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAgentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).UpdateAgent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_UpdateAgent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).UpdateAgent(ctx, req.(*UpdateAgentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAgentConfig",
 			Handler:    _AgentService_GetAgentConfig_Handler,
+		},
+		{
+			MethodName: "UpdateAgent",
+			Handler:    _AgentService_UpdateAgent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

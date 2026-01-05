@@ -705,6 +705,126 @@ func (x *GetServiceInfoResponse) GetCommit() string {
 	return ""
 }
 
+type UpdateAgentRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Rid            string                 `protobuf:"bytes,1,opt,name=rid,proto3" json:"rid,omitempty"`
+	Labels         []string               `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty"`
+	LogSources     []string               `protobuf:"bytes,3,rep,name=log_sources,json=logSources,proto3" json:"log_sources,omitempty"`
+	Metrics        bool                   `protobuf:"varint,4,opt,name=metrics,proto3" json:"metrics,omitempty"`
+	MetricsTargets []string               `protobuf:"bytes,5,rep,name=metrics_targets,json=metricsTargets,proto3" json:"metrics_targets,omitempty"`
+	Profiles       bool                   `protobuf:"varint,6,opt,name=profiles,proto3" json:"profiles,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UpdateAgentRequest) Reset() {
+	*x = UpdateAgentRequest{}
+	mi := &file_api_api_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAgentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAgentRequest) ProtoMessage() {}
+
+func (x *UpdateAgentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_api_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAgentRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAgentRequest) Descriptor() ([]byte, []int) {
+	return file_api_api_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UpdateAgentRequest) GetRid() string {
+	if x != nil {
+		return x.Rid
+	}
+	return ""
+}
+
+func (x *UpdateAgentRequest) GetLabels() []string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *UpdateAgentRequest) GetLogSources() []string {
+	if x != nil {
+		return x.LogSources
+	}
+	return nil
+}
+
+func (x *UpdateAgentRequest) GetMetrics() bool {
+	if x != nil {
+		return x.Metrics
+	}
+	return false
+}
+
+func (x *UpdateAgentRequest) GetMetricsTargets() []string {
+	if x != nil {
+		return x.MetricsTargets
+	}
+	return nil
+}
+
+func (x *UpdateAgentRequest) GetProfiles() bool {
+	if x != nil {
+		return x.Profiles
+	}
+	return false
+}
+
+type UpdateAgentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAgentResponse) Reset() {
+	*x = UpdateAgentResponse{}
+	mi := &file_api_api_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAgentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAgentResponse) ProtoMessage() {}
+
+func (x *UpdateAgentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_api_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAgentResponse.ProtoReflect.Descriptor instead.
+func (*UpdateAgentResponse) Descriptor() ([]byte, []int) {
+	return file_api_api_proto_rawDescGZIP(), []int{14}
+}
+
 var File_api_api_proto protoreflect.FileDescriptor
 
 const file_api_api_proto_rawDesc = "" +
@@ -754,14 +874,24 @@ const file_api_api_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x03 \x01(\tR\tcreatedAt\x12\x18\n" +
 	"\arelease\x18\x04 \x01(\tR\arelease\x12\x16\n" +
-	"\x06commit\x18\x05 \x01(\tR\x06commit2\xfb\x02\n" +
+	"\x06commit\x18\x05 \x01(\tR\x06commit\"\xbe\x01\n" +
+	"\x12UpdateAgentRequest\x12\x10\n" +
+	"\x03rid\x18\x01 \x01(\tR\x03rid\x12\x16\n" +
+	"\x06labels\x18\x02 \x03(\tR\x06labels\x12\x1f\n" +
+	"\vlog_sources\x18\x03 \x03(\tR\n" +
+	"logSources\x12\x18\n" +
+	"\ametrics\x18\x04 \x01(\bR\ametrics\x12'\n" +
+	"\x0fmetrics_targets\x18\x05 \x03(\tR\x0emetricsTargets\x12\x1a\n" +
+	"\bprofiles\x18\x06 \x01(\bR\bprofiles\"\x15\n" +
+	"\x13UpdateAgentResponse2\xc1\x03\n" +
 	"\fAgentService\x12J\n" +
 	"\rRegisterAgent\x12\x1b.finch.RegisterAgentRequest\x1a\x1c.finch.RegisterAgentResponse\x12P\n" +
 	"\x0fDeregisterAgent\x12\x1d.finch.DeregisterAgentRequest\x1a\x1e.finch.DeregisterAgentResponse\x12;\n" +
 	"\bGetAgent\x12\x16.finch.GetAgentRequest\x1a\x17.finch.GetAgentResponse\x12A\n" +
 	"\n" +
 	"ListAgents\x12\x18.finch.ListAgentsRequest\x1a\x19.finch.ListAgentsResponse\x12M\n" +
-	"\x0eGetAgentConfig\x12\x1c.finch.GetAgentConfigRequest\x1a\x1d.finch.GetAgentConfigResponse2\\\n" +
+	"\x0eGetAgentConfig\x12\x1c.finch.GetAgentConfigRequest\x1a\x1d.finch.GetAgentConfigResponse\x12D\n" +
+	"\vUpdateAgent\x12\x19.finch.UpdateAgentRequest\x1a\x1a.finch.UpdateAgentResponse2\\\n" +
 	"\vInfoService\x12M\n" +
 	"\x0eGetServiceInfo\x12\x1c.finch.GetServiceInfoRequest\x1a\x1d.finch.GetServiceInfoResponseB$Z\"github.com/tschaefer/finch/api;apib\x06proto3"
 
@@ -777,7 +907,7 @@ func file_api_api_proto_rawDescGZIP() []byte {
 	return file_api_api_proto_rawDescData
 }
 
-var file_api_api_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_api_api_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_api_api_proto_goTypes = []any{
 	(*RegisterAgentRequest)(nil),    // 0: finch.RegisterAgentRequest
 	(*RegisterAgentResponse)(nil),   // 1: finch.RegisterAgentResponse
@@ -792,6 +922,8 @@ var file_api_api_proto_goTypes = []any{
 	(*GetAgentConfigResponse)(nil),  // 10: finch.GetAgentConfigResponse
 	(*GetServiceInfoRequest)(nil),   // 11: finch.GetServiceInfoRequest
 	(*GetServiceInfoResponse)(nil),  // 12: finch.GetServiceInfoResponse
+	(*UpdateAgentRequest)(nil),      // 13: finch.UpdateAgentRequest
+	(*UpdateAgentResponse)(nil),     // 14: finch.UpdateAgentResponse
 }
 var file_api_api_proto_depIdxs = []int32{
 	7,  // 0: finch.ListAgentsResponse.agents:type_name -> finch.AgentListItem
@@ -800,15 +932,17 @@ var file_api_api_proto_depIdxs = []int32{
 	4,  // 3: finch.AgentService.GetAgent:input_type -> finch.GetAgentRequest
 	6,  // 4: finch.AgentService.ListAgents:input_type -> finch.ListAgentsRequest
 	9,  // 5: finch.AgentService.GetAgentConfig:input_type -> finch.GetAgentConfigRequest
-	11, // 6: finch.InfoService.GetServiceInfo:input_type -> finch.GetServiceInfoRequest
-	1,  // 7: finch.AgentService.RegisterAgent:output_type -> finch.RegisterAgentResponse
-	3,  // 8: finch.AgentService.DeregisterAgent:output_type -> finch.DeregisterAgentResponse
-	5,  // 9: finch.AgentService.GetAgent:output_type -> finch.GetAgentResponse
-	8,  // 10: finch.AgentService.ListAgents:output_type -> finch.ListAgentsResponse
-	10, // 11: finch.AgentService.GetAgentConfig:output_type -> finch.GetAgentConfigResponse
-	12, // 12: finch.InfoService.GetServiceInfo:output_type -> finch.GetServiceInfoResponse
-	7,  // [7:13] is the sub-list for method output_type
-	1,  // [1:7] is the sub-list for method input_type
+	13, // 6: finch.AgentService.UpdateAgent:input_type -> finch.UpdateAgentRequest
+	11, // 7: finch.InfoService.GetServiceInfo:input_type -> finch.GetServiceInfoRequest
+	1,  // 8: finch.AgentService.RegisterAgent:output_type -> finch.RegisterAgentResponse
+	3,  // 9: finch.AgentService.DeregisterAgent:output_type -> finch.DeregisterAgentResponse
+	5,  // 10: finch.AgentService.GetAgent:output_type -> finch.GetAgentResponse
+	8,  // 11: finch.AgentService.ListAgents:output_type -> finch.ListAgentsResponse
+	10, // 12: finch.AgentService.GetAgentConfig:output_type -> finch.GetAgentConfigResponse
+	14, // 13: finch.AgentService.UpdateAgent:output_type -> finch.UpdateAgentResponse
+	12, // 14: finch.InfoService.GetServiceInfo:output_type -> finch.GetServiceInfoResponse
+	8,  // [8:15] is the sub-list for method output_type
+	1,  // [1:8] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name
@@ -825,7 +959,7 @@ func file_api_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_api_proto_rawDesc), len(file_api_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
