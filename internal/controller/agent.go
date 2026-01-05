@@ -33,7 +33,7 @@ type Agent struct {
 func (c *Controller) RegisterAgent(data *Agent) (string, error) {
 	slog.Debug("Register Agent", "data", fmt.Sprintf("%+v", data))
 
-	agent, err := c.marshalAgent(data)
+	agent, err := c.marshalNewAgent(data)
 	if err != nil {
 		return "", err
 	}
@@ -165,19 +165,12 @@ func (c *Controller) UpdateAgent(rid string, data *Agent) error {
 		return err
 	}
 
-	data.Hostname = agent.Hostname
-	updated, err := c.marshalAgent(data)
+	updated, err := c.marshalUpdateAgent(agent, data)
 	if err != nil {
 		return err
 	}
 
-	agent.Labels = updated.Labels
-	agent.LogSources = updated.LogSources
-	agent.Metrics = updated.Metrics
-	agent.MetricsTargets = updated.MetricsTargets
-	agent.Profiles = updated.Profiles
-
-	_, err = c.model.UpdateAgent(agent)
+	_, err = c.model.UpdateAgent(updated)
 	if err != nil {
 		return err
 	}
