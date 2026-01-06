@@ -179,3 +179,36 @@ func Test_ListAgentsReturnsAllAgents(t *testing.T) {
 
 	assert.Len(t, *listedAgents, len(agentsData), "number of listed agents")
 }
+
+func Test_UpdateAgentModifiesAgent(t *testing.T) {
+	db := newDatabase(t)
+	m := New(db)
+	assert.NotNil(t, m, "create model")
+
+	data := &Agent{
+		Active:       true,
+		Hostname:     "test-agent",
+		LastSeen:     nil,
+		LogSources:   []string{"source1", "source2"},
+		Password:     "password",
+		PasswordHash: "hashed_password",
+		RegisteredAt: time.Now(),
+		ResourceId:   "resource-123",
+		Labels:       []string{"key=value", "env=prod"},
+		Username:     "testuser",
+	}
+	createdAgent, err := m.CreateAgent(data)
+	assert.NoError(t, err, "create agent")
+
+	createdAgent.LogSources = []string{"source3"}
+	createdAgent.ResourceId = "resource-456"
+	createdAgent.Labels = []string{"key=newvalue"}
+
+	updatedAgent, err := m.UpdateAgent(createdAgent)
+	assert.NoError(t, err, "update agent")
+
+	assert.Equal(t, createdAgent.LogSources, updatedAgent.LogSources, "agent log sources")
+	assert.Equal(t, createdAgent.ResourceId, updatedAgent.ResourceId, "agent resource ID")
+	assert.Equal(t, createdAgent.Labels, updatedAgent.Labels, "agent labels")
+	assert.Equal(t, createdAgent.Password, updatedAgent.Password, "agent password")
+}
