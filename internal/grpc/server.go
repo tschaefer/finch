@@ -146,6 +146,30 @@ func (s *AgentServer) GetAgentConfig(ctx context.Context, req *api.GetAgentConfi
 	return &api.GetAgentConfigResponse{Config: config}, nil
 }
 
+func (s *AgentServer) UpdateAgent(ctx context.Context, req *api.UpdateAgentRequest) (*api.UpdateAgentResponse, error) {
+	if req.Rid == "" {
+		return nil, status.Error(codes.InvalidArgument, "resource ID is required")
+	}
+
+	agent := &controller.Agent{
+		Labels:         req.Labels,
+		LogSources:     req.LogSources,
+		Metrics:        req.Metrics,
+		MetricsTargets: req.MetricsTargets,
+		Profiles:       req.Profiles,
+	}
+
+	err := s.controller.UpdateAgent(req.Rid, agent)
+	if err != nil {
+		if errors.Is(err, controller.ErrAgentNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &api.UpdateAgentResponse{}, nil
+}
+
 func (s *InfoServer) GetServiceInfo(ctx context.Context, req *api.GetServiceInfoRequest) (*api.GetServiceInfoResponse, error) {
 	return &api.GetServiceInfoResponse{
 		Id:        s.config.Id(),

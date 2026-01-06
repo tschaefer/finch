@@ -254,3 +254,40 @@ func TestGetServiceInfoReturnsInfo(t *testing.T) {
 	assert.Equal(t, "localhost", resp.Hostname)
 	assert.Equal(t, "2025-01-01T00:00:00Z", resp.CreatedAt)
 }
+
+func TestUpdateAgentReturnsError_AgentNotFound(t *testing.T) {
+	server := NewAgentServer(newController(t), testServerCfg)
+
+	req := &api.UpdateAgentRequest{
+		Rid:            "rid:notfound",
+		Labels:         []string{"env", "production"},
+		LogSources:     []string{"journal://", "file:///var/log/syslog"},
+		Metrics:        true,
+		MetricsTargets: []string{"influxdb://localhost:8086"},
+		Profiles:       false,
+	}
+	resp, err := server.UpdateAgent(context.Background(), req)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	st, ok := status.FromError(err)
+	assert.True(t, ok)
+	assert.Equal(t, codes.NotFound, st.Code())
+}
+
+func TestUpdateAgentSucceeds(t *testing.T) {
+	server := NewAgentServer(newController(t), testServerCfg)
+
+	agent := registerAgent(t, server, "to-be-updated")
+
+	req := &api.UpdateAgentRequest{
+		Rid:            agent.Rid,
+		Labels:         []string{"env", "production"},
+		LogSources:     []string{"journal://", "file:///var/log/syslog"},
+		Metrics:        true,
+		MetricsTargets: []string{"influxdb://localhost:8086"},
+		Profiles:       false,
+	}
+	resp, err := server.UpdateAgent(context.Background(), req)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+}

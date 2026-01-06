@@ -392,3 +392,61 @@ func Test_DeregisterAgentUpdatesCredentialsFile(t *testing.T) {
 		t.Fatalf("credentials file not updated after deregister; still contains username: %s", stored.Username)
 	}
 }
+
+func Test_UpdateAgentReturnsError_AgentNotFound(t *testing.T) {
+	model := newModel(t)
+
+	ctrl := New(model, cfg)
+	assert.NotNil(t, ctrl, "create controller")
+
+	data := Agent{
+		Hostname:       "non-existent-rid",
+		Labels:         []string{"key=value"},
+		LogSources:     []string{"file:///var/log/syslog"},
+		Metrics:        false,
+		MetricsTargets: nil,
+		Profiles:       false,
+	}
+
+	err := ctrl.UpdateAgent("non-existent-rid", &data)
+	expected := "agent not found"
+	assert.EqualError(t, err, expected, "update non-existent agent")
+}
+
+func Test_UpdateAgentSucceeds(t *testing.T) {
+	model := newModel(t)
+
+	ctrl := New(model, cfg)
+	assert.NotNil(t, ctrl, "create controller")
+
+	data := Agent{
+		Hostname:       "test-host-update",
+		Labels:         []string{"key=value"},
+		LogSources:     []string{"file:///var/log/syslog"},
+		Metrics:        false,
+		MetricsTargets: nil,
+		Profiles:       false,
+	}
+
+	rid, err := ctrl.RegisterAgent(&data)
+	assert.NoError(t, err, "register agent with valid parameters")
+
+	updatedData := Agent{
+		Labels:         []string{"env=staging"},
+		LogSources:     []string{"journal://"},
+		Metrics:        true,
+		MetricsTargets: []string{"http://localhost:9100/metrics"},
+		Profiles:       true,
+	}
+
+	err = ctrl.UpdateAgent(rid, &updatedData)
+	assert.NoError(t, err, "update existing agent")
+
+	agent, err := ctrl.GetAgent(rid)
+	assert.NoError(t, err, "get updated agent")
+	assert.Equal(t, []string{"env=staging"}, agent.Labels, "updated labels")
+	assert.Equal(t, []string{"journal:"}, agent.LogSources, "updated log sources")
+	assert.True(t, agent.Metrics, "updated metrics flag")
+	assert.Equal(t, []string{"http://localhost:9100/metrics"}, agent.MetricsTargets, "updated metrics targets")
+	assert.True(t, agent.Profiles, "updated profiles flag")
+}

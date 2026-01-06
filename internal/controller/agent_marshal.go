@@ -16,11 +16,57 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (c *Controller) marshalAgent(data *Agent) (*model.Agent, error) {
+func (c *Controller) marshalNewAgent(data *Agent) (*model.Agent, error) {
 	if data.Hostname == "" {
 		return nil, fmt.Errorf("hostname must not be empty")
 	}
 
+	effectiveLogSources, err := c.__parseLogSources(data)
+	if err != nil {
+		return nil, err
+	}
+
+	effectiveMetricsTargets := c.__parseMetricsTargets(data)
+
+	password, hash, err := c.__createCredentials()
+	if err != nil {
+		return nil, err
+	}
+
+	agent := &model.Agent{
+		Hostname:       data.Hostname,
+		LogSources:     effectiveLogSources,
+		Metrics:        data.Metrics,
+		MetricsTargets: effectiveMetricsTargets,
+		Profiles:       data.Profiles,
+		Labels:         data.Labels,
+		ResourceId:     fmt.Sprintf("rid:finch:%s:agent:%s", c.config.Id(), uuid.New().String()),
+		Username:       rand.Text(),
+		Password:       password,
+		PasswordHash:   string(hash),
+	}
+
+	return agent, nil
+}
+
+func (c *Controller) marshalUpdateAgent(existing *model.Agent, data *Agent) (*model.Agent, error) {
+	effectiveLogSources, err := c.__parseLogSources(data)
+	if err != nil {
+		return nil, err
+	}
+
+	effectiveMetricsTargets := c.__parseMetricsTargets(data)
+
+	existing.Labels = data.Labels
+	existing.LogSources = effectiveLogSources
+	existing.Metrics = data.Metrics
+	existing.MetricsTargets = effectiveMetricsTargets
+	existing.Profiles = data.Profiles
+
+	return existing, nil
+}
+
+func (c *Controller) __parseLogSources(data *Agent) ([]string, error) {
 	if len(data.LogSources) == 0 {
 		return nil, fmt.Errorf("at least one log source must be specified")
 	}
@@ -42,6 +88,10 @@ func (c *Controller) marshalAgent(data *Agent) (*model.Agent, error) {
 		return nil, fmt.Errorf("no valid log source specified")
 	}
 
+	return effectiveLogSources, nil
+}
+
+func (c *Controller) __parseMetricsTargets(data *Agent) []string {
 	var effectiveMetricsTargets []string
 	for _, metricsTarget := range data.MetricsTargets {
 		uri, err := url.Parse(metricsTarget)
@@ -57,28 +107,19 @@ func (c *Controller) marshalAgent(data *Agent) (*model.Agent, error) {
 		effectiveMetricsTargets = append(effectiveMetricsTargets, uri.String())
 	}
 
+	return effectiveMetricsTargets
+}
+
+func (c *Controller) __createCredentials() (string, string, error) {
 	password := rand.Text()
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 	password, err = aes.Encrypt(c.config.Secret(), password)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
-	agent := &model.Agent{
-		Hostname:       data.Hostname,
-		LogSources:     effectiveLogSources,
-		Metrics:        data.Metrics,
-		MetricsTargets: effectiveMetricsTargets,
-		Profiles:       data.Profiles,
-		Labels:         data.Labels,
-		ResourceId:     fmt.Sprintf("rid:finch:%s:agent:%s", c.config.Id(), uuid.New().String()),
-		Username:       rand.Text(),
-		Password:       password,
-		PasswordHash:   string(hash),
-	}
-
-	return agent, nil
+	return password, string(hash), nil
 }

@@ -64,3 +64,11 @@ func (m *Model) ListAgents(agents *[]Agent) (*[]Agent, error) {
 
 	return agents, nil
 }
+
+func (m *Model) UpdateAgent(agent *Agent) (*Agent, error) {
+	if err := m.db.Save(agent).Error; err != nil {
+		return nil, err
+	}
+
+	return agent, nil
+}

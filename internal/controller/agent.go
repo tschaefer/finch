@@ -33,7 +33,7 @@ type Agent struct {
 func (c *Controller) RegisterAgent(data *Agent) (string, error) {
 	slog.Debug("Register Agent", "data", fmt.Sprintf("%+v", data))
 
-	agent, err := c.marshalAgent(data)
+	agent, err := c.marshalNewAgent(data)
 	if err != nil {
 		return "", err
 	}
@@ -152,4 +152,28 @@ func (c *Controller) GetAgent(rid string) (*model.Agent, error) {
 	agent.Password = password
 
 	return agent, nil
+}
+
+func (c *Controller) UpdateAgent(rid string, data *Agent) error {
+	slog.Debug("Update Agent", "rid", rid, "data", fmt.Sprintf("%+v", data))
+
+	agent, err := c.model.GetAgent(&model.Agent{ResourceId: rid})
+	if err != nil {
+		if errors.Is(err, model.ErrAgentNotFound) {
+			return ErrAgentNotFound
+		}
+		return err
+	}
+
+	updated, err := c.marshalUpdateAgent(agent, data)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.model.UpdateAgent(updated)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
