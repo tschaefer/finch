@@ -71,6 +71,21 @@ Response:
 }
 ```
 
+**Update an existing agent:**
+
+```bash
+grpcurl \
+  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
+  -d '{
+    "rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4",
+    "log_sources": ["journal://", "file:///var/log/nginx/*.log"],
+    "metrics": true,
+    "profiles": false
+  }' \
+  finch.example.com:443 \
+  finch.AgentService/UpdateAgent
+```
+
 **List all agents:**
 
 ```bash

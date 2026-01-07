@@ -5,7 +5,6 @@ go 1.24.2
 require (
 	github.com/gofrs/flock v0.12.1
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/mux v1.8.1
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0

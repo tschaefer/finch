@@ -30,13 +30,13 @@ func (l *LoggingInterceptor) Unary() grpc.UnaryServerInterceptor {
 	) (any, error) {
 		resp, err := handler(ctx, req)
 
-		go l.log(ctx, info, resp, err)
+		go l.log(ctx, info, err)
 
 		return resp, err
 	}
 }
 
-func (l *LoggingInterceptor) log(ctx context.Context, info *grpc.UnaryServerInfo, resp any, err error) {
+func (l *LoggingInterceptor) log(ctx context.Context, info *grpc.UnaryServerInfo, err error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 
 	remoteAddr := ""
