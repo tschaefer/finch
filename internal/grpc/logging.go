@@ -94,7 +94,7 @@ func (l *LoggingInterceptor) log(ctx context.Context, info *grpc.UnaryServerInfo
 		slog.Error(msg, args...)
 	case codes.InvalidArgument, codes.NotFound, codes.AlreadyExists, codes.FailedPrecondition,
 		codes.Unauthenticated, codes.PermissionDenied, codes.ResourceExhausted,
-		codes.Canceled, codes.Aborted:
+		codes.Canceled, codes.Aborted, 418:
 		slog.Warn(msg, args...)
 	default:
 		slog.Info(msg, args...)

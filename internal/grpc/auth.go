@@ -6,15 +6,25 @@ package grpc
 
 import (
 	"context"
-	"encoding/base64"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"fmt"
 	"log/slog"
-	"strings"
+	"os"
+	"time"
 
 	"github.com/tschaefer/finch/internal/config"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	AuthHeader = "x-forwarded-tls-client-cert"
+	CAPath     = "%s/traefik/etc/certs.d/ca.pem"
+	PEMHeader  = "-----BEGIN CERTIFICATE-----\n"
+	PEMFooter  = "\n-----END CERTIFICATE-----\n"
 )
 
 type AuthInterceptor struct {
@@ -44,35 +54,69 @@ func (a *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 func (a *AuthInterceptor) authenticate(ctx context.Context) error {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return status.Error(codes.Unauthenticated, "missing metadata")
+		slog.Warn("no metadata in context")
+		return status.Error(418, "I'm a teapot")
 	}
 
-	values := md.Get("authorization")
+	values := md.Get(AuthHeader)
 	if len(values) == 0 {
-		return status.Error(codes.Unauthenticated, "missing authorization header")
+		slog.Warn("no client certificate in metadata")
+		return status.Error(418, "I'm a teapot")
 	}
 
-	authHeader := values[0]
-	if !strings.HasPrefix(authHeader, "Basic ") {
-		return status.Error(codes.Unauthenticated, "invalid authorization header")
-	}
-
-	encoded := strings.TrimPrefix(authHeader, "Basic ")
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	certPem := fmt.Sprintf("%s%s%s", PEMHeader, values[0], PEMFooter)
+	caPem, err := os.ReadFile(fmt.Sprintf(CAPath, a.config.Library()))
 	if err != nil {
-		return status.Error(codes.Unauthenticated, "invalid authorization header")
+		slog.Error("failed to read CA certificate", "error", err)
+		return status.Error(418, "I'm a teapot")
 	}
 
-	credentials := strings.SplitN(string(decoded), ":", 2)
-	if len(credentials) != 2 {
-		return status.Error(codes.Unauthenticated, "invalid credentials format")
-	}
-
-	username, password := a.config.Credentials()
-	if credentials[0] != username || credentials[1] != password {
-		slog.Warn("Unauthorized gRPC request", "username", credentials[0])
-		return status.Error(codes.Unauthenticated, "invalid credentials")
+	valid, err := a.clientCertIsValid([]byte(certPem), caPem)
+	if err != nil || !valid {
+		slog.Warn("client certificate validation failed", "error", err)
+		return status.Error(418, "I'm a teapot")
 	}
 
 	return nil
+}
+
+func (a *AuthInterceptor) parseCertFromPEM(bytes []byte) (*x509.Certificate, error) {
+	var block *pem.Block
+
+	for {
+		block, bytes = pem.Decode(bytes)
+		if block == nil {
+			return nil, errors.New("no PEM block found")
+		}
+		if block.Type == "CERTIFICATE" {
+			return x509.ParseCertificate(block.Bytes)
+		}
+	}
+}
+
+func (a *AuthInterceptor) clientCertIsValid(clientPEM, caPEM []byte) (bool, error) {
+	clientCert, err := a.parseCertFromPEM(clientPEM)
+	if err != nil {
+		return false, fmt.Errorf("parse client cert: %w", err)
+	}
+
+	caCert, err := a.parseCertFromPEM(caPEM)
+	if err != nil {
+		return false, fmt.Errorf("parse CA cert: %w", err)
+	}
+
+	roots := x509.NewCertPool()
+	roots.AddCert(caCert)
+
+	opts := x509.VerifyOptions{
+		Roots:       roots,
+		CurrentTime: time.Now(),
+		KeyUsages:   []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}
+
+	if _, err := clientCert.Verify(opts); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

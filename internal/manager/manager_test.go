@@ -40,10 +40,6 @@ func Test_NewReturnsManager(t *testing.T) {
 		Id:        "8d134b24c2541730",
 		Secret:    "C7LVMO6YY0ZfZvlEayQJR0zOE7JF8g+nrYgrcvetIbU=",
 		Version:   "1.4.0",
-		Credentials: config.Credentials{
-			Username: "admin",
-			Password: "gnKuT>m8T@3hX",
-		},
 	}
 	cfgFile := createConfigFile(t, data)
 	m, err := New(cfgFile)
@@ -71,10 +67,6 @@ func Test_NewReturnsError_InvalidDatabaseURL(t *testing.T) {
 		Id:        "8d134b24c2541730",
 		Secret:    "C7LVMO6YY0ZfZvlEayQJR0zOE7JF8g+nrYgrcvetIbU=",
 		Version:   "1.4.0",
-		Credentials: config.Credentials{
-			Username: "admin",
-			Password: "gnKuT>m8T@3hX",
-		},
 	}
 	cfgFile := createConfigFile(t, data)
 	m, err := New(cfgFile)
@@ -90,10 +82,6 @@ func Test_RunSucceeds(t *testing.T) {
 		Id:        "8d134b24c2541730",
 		Secret:    "C7LVMO6YY0ZfZvlEayQJR0zOE7JF8g+nrYgrcvetIbU=",
 		Version:   "1.4.0",
-		Credentials: config.Credentials{
-			Username: "admin",
-			Password: "gnKuT>m8T@3hX",
-		},
 	}
 	cfgFile := createConfigFile(t, data)
 	m, err := New(cfgFile)

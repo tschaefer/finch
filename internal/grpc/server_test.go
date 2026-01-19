@@ -24,11 +24,7 @@ var testServerCfg = config.NewFromData(&config.Data{
 	Hostname:  "localhost",
 	CreatedAt: "2025-01-01T00:00:00Z",
 	Database:  "sqlite://:memory:",
-	Credentials: config.Credentials{
-		Username: "admin",
-		Password: "password",
-	},
-	Secret: "gpFb8WTh5iELimbX3YfuvRYRh2Z2PHa8Lmoog0a25QQ=",
+	Secret:    "gpFb8WTh5iELimbX3YfuvRYRh2Z2PHa8Lmoog0a25QQ=",
 }, "")
 
 func newController(t *testing.T) *controller.Controller {

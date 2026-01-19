@@ -42,24 +42,6 @@ func Test_ReadReturnsError_MissingField(t *testing.T) {
 	assert.Contains(t, err.Error(), wanted, "error message")
 }
 
-func Test_ReadReturnsError_MissingCredentialsField(t *testing.T) {
-	_, err := NewFromString(`{
-		"version": "1.0",
-		"hostname": "localhost",
-		"created_at": "2023-10-01T00:00:00Z",
-		"id": "12345",
-		"database": "testdb",
-		"secret": "secret",
-		"credentials": {
-			"username": "user"
-		}
-	}`, "")
-	assert.Error(t, err, "read config string")
-
-	wanted := "invalid configuration data, missing field: Credentials.Password"
-	assert.Contains(t, err.Error(), wanted, "error message")
-}
-
 func Test_ReadReturnsConfig(t *testing.T) {
 	cfg, err := NewFromString(`{
 		"created_at": "2023-10-01T00:00:00Z",
@@ -80,7 +62,4 @@ func Test_ReadReturnsConfig(t *testing.T) {
 	assert.Equal(t, "testdb", cfg.Database(), "database")
 	assert.Equal(t, "12345", cfg.Id(), "id")
 	assert.Equal(t, "secret", cfg.Secret(), "secret")
-	username, password := cfg.Credentials()
-	assert.Equal(t, "user", username, "credentials username")
-	assert.Equal(t, "pass", password, "credentials password")
 }
