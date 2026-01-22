@@ -14,20 +14,14 @@ import (
 	"slices"
 )
 
-type Credentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 type Data struct {
-	CreatedAt   string      `json:"created_at"`
-	Database    string      `json:"database"`
-	Profiler    string      `json:"profiler"`
-	Hostname    string      `json:"hostname"`
-	Id          string      `json:"id"`
-	Secret      string      `json:"secret"`
-	Version     string      `json:"version"`
-	Credentials Credentials `json:"credentials"`
+	CreatedAt string `json:"created_at"`
+	Database  string `json:"database"`
+	Profiler  string `json:"profiler"`
+	Hostname  string `json:"hostname"`
+	Id        string `json:"id"`
+	Secret    string `json:"secret"`
+	Version   string `json:"version"`
 }
 
 type Config struct {
@@ -111,10 +105,6 @@ func (c *Config) Secret() string {
 	return c.data.Secret
 }
 
-func (c *Config) Credentials() (string, string) {
-	return c.data.Credentials.Username, c.data.Credentials.Password
-}
-
 func valid(data *Data) error {
 	fields := []string{
 		"CreatedAt",
@@ -132,19 +122,11 @@ func valid(data *Data) error {
 		}
 	}
 
-	object = reflect.ValueOf(data.Credentials)
-	for _, field := range []string{"Username", "Password"} {
-		value := object.FieldByName(field)
-		if !value.IsValid() || value.Len() == 0 {
-			return fmt.Errorf("invalid configuration data, missing field: Credentials.%s", field)
-		}
-	}
-
 	return nil
 }
 
 func filterSecrets(p any) map[string]string {
-	secrets := []string{"Secret", "Credentials"}
+	secrets := []string{"Secret"}
 
 	result := make(map[string]string)
 	object := reflect.ValueOf(p).Elem()
