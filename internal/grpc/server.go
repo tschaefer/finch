@@ -29,6 +29,11 @@ type InfoServer struct {
 	config *config.Config
 }
 
+type DashboardServer struct {
+	api.UnimplementedDashboardServiceServer
+	controller *controller.Controller
+}
+
 func NewAgentServer(ctrl *controller.Controller, cfg *config.Config) *AgentServer {
 	slog.Debug("Initializing gRPC AgentServer")
 	return &AgentServer{
@@ -41,6 +46,13 @@ func NewInfoServer(cfg *config.Config) *InfoServer {
 	slog.Debug("Initializing gRPC InfoServer")
 	return &InfoServer{
 		config: cfg,
+	}
+}
+
+func NewDashboardServer(ctrl *controller.Controller) *DashboardServer {
+	slog.Debug("Initializing gRPC DashboardServer")
+	return &DashboardServer{
+		controller: ctrl,
 	}
 }
 
@@ -177,5 +189,26 @@ func (s *InfoServer) GetServiceInfo(ctx context.Context, req *api.GetServiceInfo
 		CreatedAt: s.config.CreatedAt(),
 		Release:   version.Release(),
 		Commit:    version.Commit(),
+	}, nil
+}
+
+func (s *DashboardServer) GetDashboardToken(ctx context.Context, req *api.GetDashboardTokenRequest) (*api.GetDashboardTokenResponse, error) {
+	sessionTimeout := int(1800)
+	if req.SessionTimeout != nil {
+		sessionTimeout = int(*req.SessionTimeout)
+		if sessionTimeout <= 0 {
+			return nil, status.Error(codes.InvalidArgument, "session_timeout must be positive")
+		}
+	}
+
+	tokenResp, err := s.controller.GetDashboardToken(sessionTimeout)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &api.GetDashboardTokenResponse{
+		Token:        tokenResp.Token,
+		ExpiresAt:    tokenResp.ExpiresAt.Format(time.RFC3339),
+		DashboardUrl: tokenResp.DashboardURL,
 	}, nil
 }

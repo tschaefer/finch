@@ -78,5 +78,9 @@ func (d *Database) Migrate() error {
 		}
 	}
 
-	return d.connection.AutoMigrate(&model.Agent{})
+	if err := d.connection.AutoMigrate(&model.Agent{}); err != nil {
+		return err
+	}
+
+	return nil
 }

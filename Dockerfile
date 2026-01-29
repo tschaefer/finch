@@ -31,4 +31,9 @@ COPY --from=builder /build/bin/finch-${TARGETOS}-${TARGETARCH} /bin/finch
 EXPOSE 3000
 
 ENTRYPOINT ["/bin/finch"]
-CMD ["run", "--server.listen-address", "0.0.0.0:3000", "--stack.config-file", "/var/lib/finch/finch.json"]
+CMD [ \
+    "run", \
+    "--server.grpc-address", "0.0.0.0:3000", \
+    "--server.http-address", "0.0.0.0:3001", \
+    "--stack.config-file", "/var/lib/finch/finch.json" \
+]

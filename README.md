@@ -23,139 +23,42 @@ following services:
 See the [Blog post](https://blog.tschaefer.org/posts/2025/08/17/finch-a-minimal-logging-stack/)
 for background, motivation, and a walkthrough before you get started.
 
-For deployment instructions, please refer to the [finchctl repository](https://github.com/tschaefer/finchctl).
-
 ## gRPC API
 
-Finch provides a gRPC API with two services:
+Finch provides a gRPC API with three services:
 
 - **AgentService** – Manages observability agents
 - **InfoService** – Provides service information
+- **DashboardService** – Configures dashboard authentication
 
-The API is protected by basic authentication; credentials are provided during stack deployment.
+The API is protected by mTLS authentication; certificates and keys are provided during stack deployment.
 
-### Using grpcurl
+For the API reference, see the [proto definitions](https://github.com/tschaefer/finch/tree/main/api/proto).
 
-[grpcurl](https://github.com/fullstorydev/grpcurl) is a command-line tool for
-interacting with gRPC servers.
+## Web Dashboard
 
-**Register a new agent:**
+Finch provides a lightweight dashboard for visualizing agents with real-time
+updates.
 
-To register a new agent, supply a hostname and at least one log source.
-Supported log sources include:
+**Features:**
+- Real-time agent updates
+- Service information, statistics, and endpoints
+- Agent details (logs, metrics, profiles, labels)
+- Download configs, reveal credentials, search/filter
+- Dark theme
 
-- `journal://` – Read logs from the systemd journal
-- `docker://` – Read logs from the Docker daemon
-- `file://var/log/*.log` – Read logs from files or file patterns
+### Using finchctl (Official CLI)
 
-File sources can be specified multiple times. You may also specify `tags` to
-identify the agent and enable metrics or profiling collection.
+The **official** way to interact with Finch is via **[finchctl](https://github.com/tschaefer/finchctl)**, a dedicated command-line interface that handles mTLS authentication automatically.
 
+**Install finchctl:**
 ```bash
-grpcurl \
-  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
-  -d '{
-    "hostname": "app.example.com",
-    "log_sources": ["journal://"],
-    "metrics": true,
-    "profiles": true
-  }' \
-  finch.example.com:443 \
-  finch.AgentService/RegisterAgent
+# See installation instructions at:
+# https://github.com/tschaefer/finchctl#installation
 ```
-
-Response:
-```json
-{
-  "rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"
-}
-```
-
-**Update an existing agent:**
-
-```bash
-grpcurl \
-  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
-  -d '{
-    "rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4",
-    "log_sources": ["journal://", "file:///var/log/nginx/*.log"],
-    "metrics": true,
-    "profiles": false
-  }' \
-  finch.example.com:443 \
-  finch.AgentService/UpdateAgent
-```
-
-**List all agents:**
-
-```bash
-grpcurl \
-  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
-  finch.example.com:443 \
-  finch.AgentService/ListAgents
-```
-
-**Get agent details:**
-
-```bash
-grpcurl \
-  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
-  -d '{"rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}' \
-  finch.example.com:443 \
-  finch.AgentService/GetAgent
-```
-
-**Get agent configuration:**
-
-```bash
-grpcurl \
-  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
-  -d '{"rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}' \
-  finch.example.com:443 \
-  finch.AgentService/GetAgentConfig | jq -r .config | base64 -d > agent.cfg
-```
-
-The downloaded configuration file can be used to
-[enroll the agent](https://github.com/tschaefer/finchctl?tab=readme-ov-file#enrolling-an-observability-agent)
-with finchctl.
-
-**Deregister an agent:**
-
-```bash
-grpcurl \
-  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
-  -d '{"rid": "rid:finch:45190462017e8f71:agent:bf87bb48-3ef8-4baf-852c-7210ac48baa4"}' \
-  finch.example.com:443 \
-  finch.AgentService/DeregisterAgent
-```
-
-**Get service info:**
-
-```bash
-grpcurl \
-  -H "Authorization: Basic $(echo -n 'admin:admin' | base64)" \
-  finch.example.com:443 \
-  finch.InfoService/GetServiceInfo
-```
-
-### Testing locally
-
-For local testing without TLS, use the `-plaintext` flag:
-
-```bash
-grpcurl -plaintext \
-  -H "authorization: Basic $(echo -n 'admin:admin' | base64)" \
-  127.0.0.1:9090 \
-  finch.InfoService/GetServiceInfo
-```
-
 ## Contributing
 
-Contributions are welcome! Please fork the repository and submit a pull request.
-For major changes, open an issue first to discuss your proposal.
-
-Ensure that your code adheres to the existing style and includes appropriate
-tests.
+Fork, make changes, submit PR. For major changes, open an issue first.
 
 ## License
 

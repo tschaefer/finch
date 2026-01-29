@@ -411,3 +411,105 @@ var InfoService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "api/api.proto",
 }
+
+const (
+	DashboardService_GetDashboardToken_FullMethodName = "/finch.DashboardService/GetDashboardToken"
+)
+
+// DashboardServiceClient is the client API for DashboardService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type DashboardServiceClient interface {
+	GetDashboardToken(ctx context.Context, in *GetDashboardTokenRequest, opts ...grpc.CallOption) (*GetDashboardTokenResponse, error)
+}
+
+type dashboardServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewDashboardServiceClient(cc grpc.ClientConnInterface) DashboardServiceClient {
+	return &dashboardServiceClient{cc}
+}
+
+func (c *dashboardServiceClient) GetDashboardToken(ctx context.Context, in *GetDashboardTokenRequest, opts ...grpc.CallOption) (*GetDashboardTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDashboardTokenResponse)
+	err := c.cc.Invoke(ctx, DashboardService_GetDashboardToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DashboardServiceServer is the server API for DashboardService service.
+// All implementations must embed UnimplementedDashboardServiceServer
+// for forward compatibility.
+type DashboardServiceServer interface {
+	GetDashboardToken(context.Context, *GetDashboardTokenRequest) (*GetDashboardTokenResponse, error)
+	mustEmbedUnimplementedDashboardServiceServer()
+}
+
+// UnimplementedDashboardServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedDashboardServiceServer struct{}
+
+func (UnimplementedDashboardServiceServer) GetDashboardToken(context.Context, *GetDashboardTokenRequest) (*GetDashboardTokenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDashboardToken not implemented")
+}
+func (UnimplementedDashboardServiceServer) mustEmbedUnimplementedDashboardServiceServer() {}
+func (UnimplementedDashboardServiceServer) testEmbeddedByValue()                          {}
+
+// UnsafeDashboardServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DashboardServiceServer will
+// result in compilation errors.
+type UnsafeDashboardServiceServer interface {
+	mustEmbedUnimplementedDashboardServiceServer()
+}
+
+func RegisterDashboardServiceServer(s grpc.ServiceRegistrar, srv DashboardServiceServer) {
+	// If the following call panics, it indicates UnimplementedDashboardServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&DashboardService_ServiceDesc, srv)
+}
+
+func _DashboardService_GetDashboardToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDashboardTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardServiceServer).GetDashboardToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DashboardService_GetDashboardToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardServiceServer).GetDashboardToken(ctx, req.(*GetDashboardTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// DashboardService_ServiceDesc is the grpc.ServiceDesc for DashboardService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var DashboardService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "finch.DashboardService",
+	HandlerType: (*DashboardServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetDashboardToken",
+			Handler:    _DashboardService_GetDashboardToken_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "api/api.proto",
+}

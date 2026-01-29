@@ -21,7 +21,7 @@ test:
 
 .PHONY: proto
 proto:
-	test -z $(shell protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/api.proto >/dev/null 2>&1 || echo 1) || (echo "[WARN] Fix proto generation issues" && exit 1)
+	test -z $(protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/api.proto >/dev/null 2>&1 || echo 1) || (echo "[WARN] Fix proto generation issues" && exit 1)
 
 .PHONY: dist
 dist:
@@ -39,3 +39,4 @@ checksum:
 .PHONY: clean
 clean:
 	rm -rf bin
+

@@ -4,7 +4,8 @@ linters:
   settings:
     errcheck:
       exclude-functions:
-        - (*encoding/json.Encoder).Encode
+        - (*github.com/gorilla/websocket.Conn).WriteJSON
+        - (net/http.ResponseWriter).Write
 formatters:
   enable:
     - gofmt
