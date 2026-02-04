@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.25.6-trixie AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26rc3-trixie AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc-aarch64-linux-gnu libc6-dev-arm64-cross \
