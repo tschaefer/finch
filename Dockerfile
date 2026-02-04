@@ -22,7 +22,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     fi && \
     make dist GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
-FROM debian:trixie-20260112-slim
+FROM debian:trixie-20260202-slim
 
 ARG TARGETOS
 ARG TARGETARCH
