@@ -25,3 +25,7 @@ func New(model *model.Model, cfg *config.Config) *Controller {
 		config: cfg,
 	}
 }
+
+func (c *Controller) SubscribeAgentEvents() <-chan model.AgentEvent {
+	return c.model.SubscribeAgentEvents()
+}

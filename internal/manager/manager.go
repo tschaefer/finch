@@ -9,12 +9,14 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"time"
 
 	"github.com/tschaefer/finch/api"
 	"github.com/tschaefer/finch/internal/config"
 	"github.com/tschaefer/finch/internal/controller"
 	"github.com/tschaefer/finch/internal/database"
 	grpcserver "github.com/tschaefer/finch/internal/grpc"
+	httpserver "github.com/tschaefer/finch/internal/http"
 	"github.com/tschaefer/finch/internal/model"
 	"github.com/tschaefer/finch/internal/profiler"
 	"github.com/tschaefer/finch/internal/version"
@@ -64,26 +66,40 @@ func New(cfgFile string) (*Manager, error) {
 	}, nil
 }
 
-func (m *Manager) Run(ctx context.Context, listenAddr string) {
-	slog.Debug("Running Manager", "listenAddr", listenAddr)
+func (m *Manager) Run(ctx context.Context, grpcAddr string, httpAddr string) {
+	slog.Debug("Running Manager", "grpcAddr", grpcAddr, "httpAddr", httpAddr)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	slog.Info("Starting Finch management server", "release", version.Release(), "commit", version.Commit())
-	slog.Info("Listening on " + listenAddr)
+	slog.Info("Listening on " + grpcAddr + " (gRPC)")
+	slog.Info("Listening on " + httpAddr + " (HTTP)")
 
-	grpcServer, err := m.runGRPCServer(listenAddr)
+	grpcServer, err := m.runGRPCServer(grpcAddr)
 	if err != nil {
-		slog.Error("Failed to start server", "error", err)
+		slog.Error("Failed to start gRPC server", "error", err)
+		os.Exit(1)
+	}
+
+	httpServer, err := m.runHTTPServer(httpAddr)
+	if err != nil {
+		slog.Error("Failed to start HTTP server", "error", err)
 		os.Exit(1)
 	}
 
 	<-ctx.Done()
-	slog.Info("Shutting down server...")
+	slog.Info("Shutting down servers...")
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	if err := httpServer.Stop(shutdownCtx); err != nil {
+		slog.Error("HTTP server shutdown error", "error", err)
+	}
 
 	grpcServer.GracefulStop()
-	slog.Info("Server stopped")
+	slog.Info("Servers stopped")
 }
 
 func (m *Manager) runGRPCServer(listenAddr string) (*grpc.Server, error) {
@@ -110,6 +126,9 @@ func (m *Manager) runGRPCServer(listenAddr string) (*grpc.Server, error) {
 	infoServer := grpcserver.NewInfoServer(m.config)
 	api.RegisterInfoServiceServer(grpcServer, infoServer)
 
+	dashboardServer := grpcserver.NewDashboardServer(m.controller)
+	api.RegisterDashboardServiceServer(grpcServer, dashboardServer)
+
 	reflection.Register(grpcServer)
 
 	go func() {
@@ -120,4 +139,12 @@ func (m *Manager) runGRPCServer(listenAddr string) (*grpc.Server, error) {
 	}()
 
 	return grpcServer, nil
+}
+
+func (m *Manager) runHTTPServer(httpAddr string) (*httpserver.Server, error) {
+	httpServer := httpserver.NewServer(httpAddr, m.controller, m.config)
+	if err := httpServer.Start(); err != nil {
+		return nil, err
+	}
+	return httpServer, nil
 }

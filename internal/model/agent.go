@@ -39,11 +39,17 @@ func (m *Model) CreateAgent(agent *Agent) (*Agent, error) {
 		return nil, err
 	}
 
+	m.notifyAgentEvent("create")
 	return agent, nil
 }
 
 func (m *Model) DeleteAgent(agent *Agent) error {
-	return m.db.Delete(agent).Error
+	if err := m.db.Delete(agent).Error; err != nil {
+		return err
+	}
+
+	m.notifyAgentEvent("delete")
+	return nil
 }
 
 func (m *Model) GetAgent(agent *Agent) (*Agent, error) {
@@ -70,5 +76,6 @@ func (m *Model) UpdateAgent(agent *Agent) (*Agent, error) {
 		return nil, err
 	}
 
+	m.notifyAgentEvent("update")
 	return agent, nil
 }

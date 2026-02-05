@@ -17,6 +17,10 @@ service InfoService {
   rpc GetServiceInfo(GetServiceInfoRequest) returns (GetServiceInfoResponse);
 }
 
+service DashboardService {
+  rpc GetDashboardToken(GetDashboardTokenRequest) returns (GetDashboardTokenResponse);
+}
+
 message RegisterAgentRequest {
   string hostname = 1;
   repeated string labels = 2;
@@ -90,3 +94,13 @@ message UpdateAgentRequest {
 }
 
 message UpdateAgentResponse {}
+
+message GetDashboardTokenRequest {
+  optional int32 session_timeout = 1;
+}
+
+message GetDashboardTokenResponse {
+  string token = 1;
+  string expires_at = 2;
+  string dashboard_url = 3;
+}

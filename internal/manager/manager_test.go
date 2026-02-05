@@ -91,20 +91,27 @@ func Test_RunSucceeds(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var port string
-	for _, port = range []string{"11111", "22222", "33333", "44444", "55555", "66666"} {
-		conn, _ := net.Dial("tcp", net.JoinHostPort("127.0.0.1", port))
+	var grpcPort, httpPort string
+	for _, grpcPort = range []string{"11111", "22222", "33333", "44444", "55555", "66666"} {
+		conn, _ := net.Dial("tcp", net.JoinHostPort("127.0.0.1", grpcPort))
+		if conn == nil {
+			break
+		}
+		_ = conn.Close()
+	}
+	for _, httpPort = range []string{"11112", "22223", "33334", "44445", "55556", "66667"} {
+		conn, _ := net.Dial("tcp", net.JoinHostPort("127.0.0.1", httpPort))
 		if conn == nil {
 			break
 		}
 		_ = conn.Close()
 	}
 
-	go m.Run(ctx, net.JoinHostPort("127.0.0.1", port))
+	go m.Run(ctx, net.JoinHostPort("127.0.0.1", grpcPort), net.JoinHostPort("127.0.0.1", httpPort))
 
 	var conn net.Conn
 	for range 50 {
-		conn, err = net.Dial("tcp", net.JoinHostPort("127.0.0.1", port))
+		conn, err = net.Dial("tcp", net.JoinHostPort("127.0.0.1", grpcPort))
 		if conn != nil {
 			break
 		}
