@@ -134,18 +134,15 @@
   </div>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
     const form = document.getElementById('loginForm');
 
-    if (params.get('error') === 'expired') {
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'error-message';
-      errorDiv.textContent = 'Your token has expired. Please enter a new token.';
-      form.insertBefore(errorDiv, form.firstChild);
-    }
-
     {{if .Error}}
-      {{if eq .Error "invalid"}}
+      {{if eq .Error "expired"}}
+        const expiredDiv = document.createElement('div');
+        expiredDiv.className = 'error-message';
+        expiredDiv.textContent = 'Your token has expired. Please enter a new token.';
+        form.insertBefore(expiredDiv, form.firstChild);
+      {{else if eq .Error "invalid"}}
         const errorDiv = document.createElement('div');
         errorDiv.className = 'error-message';
         errorDiv.textContent = 'Invalid or expired token. Please try again.';

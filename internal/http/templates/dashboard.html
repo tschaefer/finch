@@ -781,7 +781,16 @@
       };
 
       ws.onclose = () => {
-        window.location.href = '/login?error=expired';
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/login';
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'error';
+        input.value = 'expired';
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
       };
 
       document.getElementById('search-input').addEventListener('input', (e) => {

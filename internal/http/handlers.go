@@ -92,7 +92,7 @@ type CredentialsData struct {
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	var token string
+	var token, errorMsg string
 	switch r.Method {
 	case http.MethodGet:
 		token = r.URL.Query().Get("token")
@@ -102,11 +102,16 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		token = r.FormValue("token")
+		errorMsg = r.FormValue("error")
 	}
 	token = strings.TrimSpace(token)
 
 	if token == "" {
-		if err := templates.ExecuteTemplate(w, "login.html", nil); err != nil {
+		data := map[string]string{}
+		if errorMsg == "expired" {
+			data["Error"] = "expired"
+		}
+		if err := templates.ExecuteTemplate(w, "login.html", data); err != nil {
 			slog.Error("Failed to render login", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
