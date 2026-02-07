@@ -707,21 +707,10 @@
 
   <script>
     (function() {
-      function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-      }
-
-      const token = getCookie('dashboard_token');
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
+      let intentionalLogout = false;
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = protocol + '//' + window.location.host + '/ws?token=' + encodeURIComponent(token);
+      const wsUrl = protocol + '//' + window.location.host + '/ws';
       const ws = new WebSocket(wsUrl);
 
       let currentPage = 1;
@@ -781,16 +770,18 @@
       };
 
       ws.onclose = () => {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/login';
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'error';
-        input.value = 'expired';
-        form.appendChild(input);
-        document.body.appendChild(form);
-        form.submit();
+        if (!intentionalLogout) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/login';
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'error';
+          input.value = 'expired';
+          form.appendChild(input);
+          document.body.appendChild(form);
+          form.submit();
+        }
       };
 
       document.getElementById('search-input').addEventListener('input', (e) => {
@@ -906,9 +897,15 @@
         }
       }
 
-      document.getElementById('logout').addEventListener('click', () => {
-        document.cookie = 'dashboard_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        window.location.href = '/login';
+      document.getElementById('logout').addEventListener('click', (e) => {
+        e.preventDefault();
+        intentionalLogout = true;
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/logout';
+        document.body.appendChild(form);
+        form.submit();
       });
     })();
   </script>

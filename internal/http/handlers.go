@@ -131,7 +131,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Name:     "dashboard_token",
 		Value:    token,
 		Path:     "/",
-		HttpOnly: false,
+		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   0,
 	}
@@ -143,6 +143,28 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
+func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	cookie := &http.Cookie{
+		Name:     "dashboard_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+	}
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+		cookie.Secure = true
+	}
+	http.SetCookie(w, cookie)
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	if err := templates.ExecuteTemplate(w, "dashboard.html", nil); err != nil {
 		slog.Error("Failed to render dashboard", "error", err)
@@ -151,6 +173,13 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("dashboard_token")
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	token := cookie.Value
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error("Failed to upgrade WebSocket", "error", err)
@@ -159,8 +188,6 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		_ = conn.Close()
 	}()
-
-	token := r.URL.Query().Get("token")
 
 	currentPage := 1
 	currentSearch := ""

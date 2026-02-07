@@ -5,7 +5,6 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package http
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -59,19 +58,15 @@ func TestHandleWebSocketUpgrade(t *testing.T) {
 	resp, err := ctrl.GetDashboardToken(1800)
 	assert.NoError(t, err)
 
-	err = server.Start()
-	assert.NoError(t, err)
-	defer func() {
-		_ = server.Stop(context.TODO())
-	}()
-
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		server.handleWebSocket(w, r)
-	}))
+	testServer := httptest.NewServer(server.server.Handler)
 	defer testServer.Close()
 
-	wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http") + "?token=" + resp.Token
-	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http") + "/ws"
+
+	headers := http.Header{}
+	headers.Add("Cookie", "dashboard_token="+resp.Token)
+
+	ws, _, err := websocket.DefaultDialer.Dial(wsURL, headers)
 	assert.NoError(t, err)
 	defer func() {
 		_ = ws.Close()
@@ -81,6 +76,39 @@ func TestHandleWebSocketUpgrade(t *testing.T) {
 	err = ws.ReadJSON(&msg)
 	assert.NoError(t, err)
 	assert.Contains(t, []string{"info", "stats", "endpoints", "agents"}, msg.Type)
+}
+
+func TestHandleWebSocketRejectsWithoutAuth(t *testing.T) {
+	ctrl := newTestController(t)
+	server := NewServer("127.0.0.1:0", ctrl, testCfg)
+
+	testServer := httptest.NewServer(server.server.Handler)
+	defer testServer.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http") + "/ws"
+
+	_, resp, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	assert.Error(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+}
+
+func TestHandleWebSocketRejectsInvalidToken(t *testing.T) {
+	ctrl := newTestController(t)
+	server := NewServer("127.0.0.1:0", ctrl, testCfg)
+
+	testServer := httptest.NewServer(server.server.Handler)
+	defer testServer.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http") + "/ws"
+
+	headers := http.Header{}
+	headers.Add("Cookie", "dashboard_token=invalid_token")
+
+	_, resp, err := websocket.DefaultDialer.Dial(wsURL, headers)
+	assert.Error(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
 func TestWebSocketSendsInfoUpdate(t *testing.T) {
@@ -284,7 +312,6 @@ func TestWebSocketHandlesGetCredentialsMessage(t *testing.T) {
 	ctrl := newTestController(t)
 	server := NewServer("127.0.0.1:0", ctrl, testCfg)
 
-	// Register an agent
 	agentData := &controller.Agent{
 		Hostname:   "test-host",
 		LogSources: []string{"journal://"},
