@@ -6,7 +6,6 @@ package http
 
 import (
 	"net/http"
-	"strings"
 )
 
 func (s *Server) securityHeaders(next http.Handler) http.Handler {
@@ -22,16 +21,16 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 				"base-uri 'self'; "+
 				"form-action 'self'")
 
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-
 		w.Header().Set("Permissions-Policy",
 			"camera=(), "+
 				"microphone=(), "+
 				"geolocation=(), "+
 				"payment=()")
+
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
 		if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
@@ -43,27 +42,13 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var token string
-
-		auth := r.Header.Get("Authorization")
-		if auth != "" {
-			const prefix = "Bearer "
-			if !strings.HasPrefix(auth, prefix) {
-				http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
-				return
-			}
-			token = strings.TrimPrefix(auth, prefix)
-		} else {
-			cookie, err := r.Cookie("dashboard_token")
-			if err == nil {
-				token = cookie.Value
-			} else {
-				token = r.URL.Query().Get("token")
-			}
-		}
-
-		if token == "" {
+		cookie, err := r.Cookie("dashboard_token")
+		if err != nil {
 			if r.URL.Path != "/login" {
+				if r.URL.Path == "/ws" {
+					http.Error(w, "Unauthorized", http.StatusUnauthorized)
+					return
+				}
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			}
@@ -71,19 +56,25 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if err := s.controller.ValidateDashboardToken(token); err != nil {
-			http.SetCookie(w, &http.Cookie{
-				Name:   "dashboard_token",
-				Value:  "",
-				Path:   "/",
-				MaxAge: -1,
-			})
+		if err := s.controller.ValidateDashboardToken(cookie.Value); err != nil {
+			clearCookie := &http.Cookie{
+				Name:     "dashboard_token",
+				Value:    "",
+				Path:     "/",
+				HttpOnly: true,
+				SameSite: http.SameSiteStrictMode,
+				MaxAge:   -1,
+			}
+			if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+				clearCookie.Secure = true
+			}
+			http.SetCookie(w, clearCookie)
 
 			if r.URL.Path == "/ws" {
-				http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
-			} else {
-				http.Redirect(w, r, "/login?error=expired", http.StatusSeeOther)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
 			}
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 

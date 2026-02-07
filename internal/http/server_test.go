@@ -91,8 +91,7 @@ func TestWebSocketRouteExists(t *testing.T) {
 
 	server.server.Handler.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusSeeOther, rec.Code)
-	assert.Equal(t, "/login", rec.Header().Get("Location"))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
 func TestNonExistentRouteReturnsNotFound(t *testing.T) {
@@ -105,6 +104,69 @@ func TestNonExistentRouteReturnsNotFound(t *testing.T) {
 	server.server.Handler.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestLogoutRouteExists(t *testing.T) {
+	ctrl := newTestController(t)
+	server := NewServer("127.0.0.1:0", ctrl, testCfg)
+
+	resp, err := ctrl.GetDashboardToken(1800)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "dashboard_token",
+		Value: resp.Token,
+	})
+	rec := httptest.NewRecorder()
+
+	server.server.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.Equal(t, "/login", rec.Header().Get("Location"))
+
+	cookies := rec.Result().Cookies()
+	var found bool
+	for _, cookie := range cookies {
+		if cookie.Name == "dashboard_token" {
+			found = true
+			assert.Equal(t, "", cookie.Value)
+			assert.Equal(t, -1, cookie.MaxAge)
+		}
+	}
+	assert.True(t, found, "dashboard_token cookie should be set with MaxAge=-1")
+}
+
+func TestLogoutRequiresAuth(t *testing.T) {
+	ctrl := newTestController(t)
+	server := NewServer("127.0.0.1:0", ctrl, testCfg)
+
+	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
+	rec := httptest.NewRecorder()
+
+	server.server.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.Equal(t, "/login", rec.Header().Get("Location"))
+}
+
+func TestLogoutRequiresPost(t *testing.T) {
+	ctrl := newTestController(t)
+	server := NewServer("127.0.0.1:0", ctrl, testCfg)
+
+	resp, err := ctrl.GetDashboardToken(1800)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/logout", nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "dashboard_token",
+		Value: resp.Token,
+	})
+	rec := httptest.NewRecorder()
+
+	server.server.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
 }
 
 func TestSecurityHeadersAreSet(t *testing.T) {
