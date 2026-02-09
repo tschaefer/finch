@@ -629,7 +629,8 @@
   <header class="header">
     <div class="header-content">
       <div id="service-info" class="service-info">
-        <span class="hostname">Loading...</span>
+        <span class="hostname">{{.Hostname}}</span>
+        <span class="version">{{.Release}}</span>
       </div>
       <button id="logout" class="btn-logout">Logout</button>
     </div>
@@ -701,7 +702,7 @@
       <a href="https://github.com/tschaefer/finch" target="_blank" rel="noopener noreferrer">
         Finch Management Service
       </a>
-      &copy; Tobias Schäfer
+      &copy; Tobias Schäfer - {{.Commit}}
     </p>
   </footer>
 
@@ -722,9 +723,6 @@
         const msg = JSON.parse(event.data);
 
         switch(msg.type) {
-          case 'info':
-            document.getElementById('service-info').innerHTML = msg.html;
-            break;
           case 'stats':
             document.getElementById('stats').innerHTML = msg.html;
             break;

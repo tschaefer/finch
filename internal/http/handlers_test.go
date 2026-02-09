@@ -111,37 +111,6 @@ func TestHandleWebSocketRejectsInvalidToken(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
-func TestWebSocketSendsInfoUpdate(t *testing.T) {
-	ctrl := newTestController(t)
-	server := NewServer("127.0.0.1:0", ctrl, testCfg)
-
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			return
-		}
-		defer func() {
-			_ = conn.Close()
-		}()
-
-		server.sendInfoUpdate(conn)
-	}))
-	defer testServer.Close()
-
-	wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http")
-	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	assert.NoError(t, err)
-	defer func() {
-		_ = ws.Close()
-	}()
-
-	var msg WSResponse
-	err = ws.ReadJSON(&msg)
-	assert.NoError(t, err)
-	assert.Equal(t, "info", msg.Type)
-	assert.Contains(t, msg.HTML, "localhost")
-}
-
 func TestWebSocketSendsStatsUpdate(t *testing.T) {
 	ctrl := newTestController(t)
 	server := NewServer("127.0.0.1:0", ctrl, testCfg)

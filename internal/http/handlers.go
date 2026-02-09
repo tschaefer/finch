@@ -166,7 +166,18 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	if err := templates.ExecuteTemplate(w, "dashboard.html", nil); err != nil {
+	commit := version.GitCommit
+	if len(commit) > 7 {
+		commit = commit[:7]
+	}
+
+	data := ServiceInfoData{
+		Hostname: s.config.Hostname(),
+		Release:  version.Version,
+		Commit:   commit,
+	}
+
+	if err := templates.ExecuteTemplate(w, "dashboard.html", data); err != nil {
 		slog.Error("Failed to render dashboard", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
@@ -192,7 +203,6 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	currentPage := 1
 	currentSearch := ""
 
-	s.sendInfoUpdate(conn)
 	s.sendStatsUpdate(conn)
 	s.sendEndpointsUpdate(conn)
 	s.sendAgentsUpdate(conn, currentPage, currentSearch)
@@ -398,33 +408,6 @@ func (s *Server) sendStatsUpdate(conn *websocket.Conn) {
 
 	response := WSResponse{
 		Type: "stats",
-		HTML: buf.String(),
-	}
-	conn.WriteJSON(response)
-}
-
-func (s *Server) sendInfoUpdate(conn *websocket.Conn) {
-	hostname := s.config.Hostname()
-
-	commit := version.GitCommit
-	if len(commit) > 7 {
-		commit = commit[:7]
-	}
-
-	data := ServiceInfoData{
-		Hostname: hostname,
-		Release:  version.Version,
-		Commit:   commit,
-	}
-
-	var buf bytes.Buffer
-	if err := templates.ExecuteTemplate(&buf, "info.html", data); err != nil {
-		slog.Error("Failed to render info template", "error", err)
-		return
-	}
-
-	response := WSResponse{
-		Type: "info",
 		HTML: buf.String(),
 	}
 	conn.WriteJSON(response)
