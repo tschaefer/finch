@@ -5,11 +5,8 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package controller
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tschaefer/finch/internal/config"
@@ -265,132 +262,6 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 	assert.Len(t, agents, 2, "agent list")
 	assert.Equal(t, "test-host-1", agents[0]["hostname"], "first agent hostname")
 	assert.Equal(t, "test-host-2", agents[1]["hostname"], "second agent hostname")
-}
-
-func Test_RegisterAgentGeneratesCredentialsFile(t *testing.T) {
-	model := newModel(t)
-
-	tmp := t.TempDir()
-	confDir := filepath.Join(tmp, "traefik", "etc", "conf.d")
-	if err := os.MkdirAll(confDir, 0755); err != nil {
-		t.Fatalf("failed to create conf dir: %v", err)
-	}
-
-	cfg := config.NewFromData(&config.Data{
-		Secret: "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM=",
-	}, tmp)
-
-	ctrl := New(model, cfg)
-	assert.NotNil(t, ctrl, "create controller")
-
-	data := Agent{
-		Hostname:       "test-host-credentials",
-		Labels:         []string{"key=value"},
-		LogSources:     []string{"file:///var/log/syslog"},
-		Metrics:        false,
-		MetricsTargets: nil,
-		Profiles:       false,
-	}
-
-	rid, err := ctrl.RegisterAgent(&data)
-	assert.NoError(t, err, "register agent with valid parameters")
-
-	usersFile := filepath.Join(confDir, "loki-users.yaml")
-
-	var content []byte
-	found := false
-	for range 50 {
-		if _, err := os.Stat(usersFile); err == nil {
-			content, err = os.ReadFile(usersFile)
-			if err != nil {
-				t.Fatalf("failed reading credentials file: %v", err)
-			}
-			found = true
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	if !found {
-		t.Fatalf("credentials file not created: %s", usersFile)
-	}
-
-	stored, err := ctrl.GetAgent(rid)
-	assert.NoError(t, err)
-	assert.Contains(t, string(content), stored.Username, "credentials file should contain username")
-	assert.Contains(t, string(content), stored.PasswordHash, "credentials file should contain password hash")
-}
-
-func Test_DeregisterAgentUpdatesCredentialsFile(t *testing.T) {
-	model := newModel(t)
-
-	tmp := t.TempDir()
-	confDir := filepath.Join(tmp, "traefik", "etc", "conf.d")
-	if err := os.MkdirAll(confDir, 0755); err != nil {
-		t.Fatalf("failed to create conf dir: %v", err)
-	}
-
-	cfg := config.NewFromData(&config.Data{
-		Secret: "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM=",
-	}, tmp)
-
-	ctrl := New(model, cfg)
-	assert.NotNil(t, ctrl, "create controller")
-
-	data := Agent{
-		Hostname:       "test-host-deregister",
-		Labels:         []string{"key=value"},
-		LogSources:     []string{"file:///var/log/syslog"},
-		Metrics:        false,
-		MetricsTargets: nil,
-		Profiles:       false,
-	}
-
-	rid, err := ctrl.RegisterAgent(&data)
-	assert.NoError(t, err, "register agent with valid parameters")
-
-	usersFile := filepath.Join(confDir, "loki-users.yaml")
-
-	var content []byte
-	found := false
-	for range 50 {
-		if _, err := os.Stat(usersFile); err == nil {
-			content, err = os.ReadFile(usersFile)
-			if err != nil {
-				t.Fatalf("failed reading credentials file: %v", err)
-			}
-			found = true
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	if !found {
-		t.Fatalf("credentials file not created: %s", usersFile)
-	}
-
-	stored, err := ctrl.GetAgent(rid)
-	assert.NoError(t, err)
-	assert.Contains(t, string(content), stored.Username, "credentials file should contain username before deregister")
-
-	err = ctrl.DeregisterAgent(rid)
-	assert.NoError(t, err)
-
-	updated := false
-	for range 50 {
-		if _, err := os.Stat(usersFile); err == nil {
-			content, err = os.ReadFile(usersFile)
-			if err != nil {
-				t.Fatalf("failed reading credentials file after deregister: %v", err)
-			}
-			if !strings.Contains(string(content), stored.Username) {
-				updated = true
-				break
-			}
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	if !updated {
-		t.Fatalf("credentials file not updated after deregister; still contains username: %s", stored.Username)
-	}
 }
 
 func Test_UpdateAgentReturnsError_AgentNotFound(t *testing.T) {

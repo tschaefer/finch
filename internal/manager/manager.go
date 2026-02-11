@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/tschaefer/finch/api"
+	"github.com/tschaefer/finch/internal/auth"
 	"github.com/tschaefer/finch/internal/config"
 	"github.com/tschaefer/finch/internal/controller"
 	"github.com/tschaefer/finch/internal/database"
@@ -66,8 +67,8 @@ func New(cfgFile string) (*Manager, error) {
 	}, nil
 }
 
-func (m *Manager) Run(ctx context.Context, grpcAddr string, httpAddr string) {
-	slog.Debug("Running Manager", "grpcAddr", grpcAddr, "httpAddr", httpAddr)
+func (m *Manager) Run(ctx context.Context, grpcAddr string, httpAddr string, authAddr string) {
+	slog.Debug("Running Manager", "grpcAddr", grpcAddr, "httpAddr", httpAddr, "authAddr", authAddr)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -75,6 +76,7 @@ func (m *Manager) Run(ctx context.Context, grpcAddr string, httpAddr string) {
 	slog.Info("Starting Finch management server", "release", version.Release(), "commit", version.Commit())
 	slog.Info("Listening on " + grpcAddr + " (gRPC)")
 	slog.Info("Listening on " + httpAddr + " (HTTP)")
+	slog.Info("Listening on " + authAddr + " (Auth)")
 
 	grpcServer, err := m.runGRPCServer(grpcAddr)
 	if err != nil {
@@ -88,11 +90,21 @@ func (m *Manager) Run(ctx context.Context, grpcAddr string, httpAddr string) {
 		os.Exit(1)
 	}
 
+	authServer, err := m.runAuthServer(authAddr)
+	if err != nil {
+		slog.Error("Failed to start Auth server", "error", err)
+		os.Exit(1)
+	}
+
 	<-ctx.Done()
 	slog.Info("Shutting down servers...")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
+
+	if err := authServer.Stop(shutdownCtx); err != nil {
+		slog.Error("Auth server shutdown error", "error", err)
+	}
 
 	if err := httpServer.Stop(shutdownCtx); err != nil {
 		slog.Error("HTTP server shutdown error", "error", err)
@@ -147,4 +159,12 @@ func (m *Manager) runHTTPServer(httpAddr string) (*httpserver.Server, error) {
 		return nil, err
 	}
 	return httpServer, nil
+}
+
+func (m *Manager) runAuthServer(authAddr string) (*auth.Server, error) {
+	authServer := auth.NewServer(authAddr, m.model)
+	if err := authServer.Start(); err != nil {
+		return nil, err
+	}
+	return authServer, nil
 }

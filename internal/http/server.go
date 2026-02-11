@@ -7,6 +7,7 @@ package http
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
 	"time"
 
@@ -53,8 +54,13 @@ func NewServer(addr string, ctrl *controller.Controller, cfg *config.Config) *Se
 }
 
 func (s *Server) Start() error {
+	listen, err := net.Listen("tcp", s.server.Addr)
+	if err != nil {
+		return err
+	}
+
 	go func() {
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.server.Serve(listen); err != nil && err != http.ErrServerClosed {
 			slog.Error("HTTP server error", "error", err)
 		}
 	}()
