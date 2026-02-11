@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"text/template"
 
@@ -51,12 +50,6 @@ func (c *Controller) RegisterAgent(data *Agent) (string, error) {
 		return "", err
 	}
 
-	go func() {
-		if err := c.generateCredentialsFile(); err != nil {
-			log.Printf("failed to generate credentials file: %v", err)
-		}
-	}()
-
 	return agent.ResourceId, nil
 }
 
@@ -74,12 +67,6 @@ func (c *Controller) DeregisterAgent(rid string) error {
 	if err := c.model.DeleteAgent(agent); err != nil {
 		return err
 	}
-
-	go func() {
-		if err := c.generateCredentialsFile(); err != nil {
-			log.Printf("failed to generate credentials file: %v", err)
-		}
-	}()
 
 	return nil
 }

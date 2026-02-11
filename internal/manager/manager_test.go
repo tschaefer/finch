@@ -91,27 +91,26 @@ func Test_RunSucceeds(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var grpcPort, httpPort string
-	for _, grpcPort = range []string{"11111", "22222", "33333", "44444", "55555", "66666"} {
-		conn, _ := net.Dial("tcp", net.JoinHostPort("127.0.0.1", grpcPort))
-		if conn == nil {
-			break
-		}
-		_ = conn.Close()
-	}
-	for _, httpPort = range []string{"11112", "22223", "33334", "44445", "55556", "66667"} {
-		conn, _ := net.Dial("tcp", net.JoinHostPort("127.0.0.1", httpPort))
-		if conn == nil {
-			break
-		}
-		_ = conn.Close()
-	}
+	grpcListener, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err, "allocate gRPC port")
+	grpcAddr := grpcListener.Addr().String()
+	_ = grpcListener.Close()
 
-	go m.Run(ctx, net.JoinHostPort("127.0.0.1", grpcPort), net.JoinHostPort("127.0.0.1", httpPort))
+	httpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err, "allocate HTTP port")
+	httpAddr := httpListener.Addr().String()
+	_ = httpListener.Close()
+
+	authListener, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err, "allocate auth port")
+	authAddr := authListener.Addr().String()
+	_ = authListener.Close()
+
+	go m.Run(ctx, grpcAddr, httpAddr, authAddr)
 
 	var conn net.Conn
 	for range 50 {
-		conn, err = net.Dial("tcp", net.JoinHostPort("127.0.0.1", grpcPort))
+		conn, err = net.Dial("tcp", grpcAddr)
 		if conn != nil {
 			break
 		}

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/url"
 
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -51,6 +52,8 @@ func New(config *config.Config) (*Database, error) {
 		}
 
 		connection, err = gorm.Open(sqlite.Open(path), dbcfg)
+	case "postgres", "postgresql":
+		connection, err = gorm.Open(postgres.Open(uri.String()), dbcfg)
 	default:
 		return nil, fmt.Errorf("unsupported database scheme: %s", uri.Scheme)
 	}
