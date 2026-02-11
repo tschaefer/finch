@@ -5,6 +5,7 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package http
 
 import (
+	"log/slog"
 	"net/http"
 )
 
@@ -46,6 +47,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			if r.URL.Path != "/login" {
 				if r.URL.Path == "/ws" {
+					s.log(r, slog.LevelWarn, "Unauthorized WebSocket connection attempt")
 					http.Error(w, "Unauthorized", http.StatusUnauthorized)
 					return
 				}
@@ -71,6 +73,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			http.SetCookie(w, clearCookie)
 
 			if r.URL.Path == "/ws" {
+				s.log(r, slog.LevelWarn, "Unauthorized WebSocket connection attempt with invalid token")
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}

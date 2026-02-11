@@ -66,26 +66,6 @@ func Test_RegisterAgentReturnsError_InvalidParameters(t *testing.T) {
 	assert.EqualError(t, err, expected, "register agent with invalid log source")
 }
 
-func Test_RegisterAgentReturnsError_InvalidServiceSecret(t *testing.T) {
-	model := newModel(t)
-	cfg := config.NewFromData(&config.Data{Secret: "invalid-secret"}, "")
-
-	ctrl := New(model, cfg)
-	assert.NotNil(t, ctrl, "create controller")
-
-	data := Agent{
-		Hostname:       "test-host",
-		Labels:         []string{"key=value"},
-		LogSources:     []string{"journal://"},
-		Metrics:        false,
-		MetricsTargets: nil,
-		Profiles:       false,
-	}
-
-	_, err := ctrl.RegisterAgent(&data)
-	assert.Error(t, err, "register agent with invalid config secret")
-}
-
 func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 	model := newModel(t)
 

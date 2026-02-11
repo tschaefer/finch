@@ -76,8 +76,19 @@ func (d *Database) Migrate() error {
 	slog.Debug("Migrating database schema")
 
 	if d.connection.Migrator().HasColumn(&model.Agent{}, "tags") {
-		if err := d.connection.Migrator().RenameColumn(&model.Agent{}, "tags", "labels"); err != nil {
+		sql := "ALTER TABLE agents RENAME COLUMN tags TO labels"
+		if err := d.connection.Exec(sql).Error; err != nil {
 			return err
+		}
+	}
+
+	columnsToRemove := []string{"password", "password_hash", "username"}
+	for _, column := range columnsToRemove {
+		if d.connection.Migrator().HasColumn(&model.Agent{}, column) {
+			sql := fmt.Sprintf("ALTER TABLE agents DROP COLUMN %s", column)
+			if err := d.connection.Exec(sql).Error; err != nil {
+				return err
+			}
 		}
 	}
 

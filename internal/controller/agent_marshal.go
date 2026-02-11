@@ -5,15 +5,12 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package controller
 
 import (
-	"crypto/rand"
 	"fmt"
 	"net/url"
 	"slices"
 
 	"github.com/google/uuid"
-	"github.com/tschaefer/finch/internal/aes"
 	"github.com/tschaefer/finch/internal/model"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func (c *Controller) marshalNewAgent(data *Agent) (*model.Agent, error) {
@@ -28,11 +25,6 @@ func (c *Controller) marshalNewAgent(data *Agent) (*model.Agent, error) {
 
 	effectiveMetricsTargets := c.__parseMetricsTargets(data)
 
-	password, hash, err := c.__createCredentials()
-	if err != nil {
-		return nil, err
-	}
-
 	agent := &model.Agent{
 		Hostname:       data.Hostname,
 		LogSources:     effectiveLogSources,
@@ -41,9 +33,6 @@ func (c *Controller) marshalNewAgent(data *Agent) (*model.Agent, error) {
 		Profiles:       data.Profiles,
 		Labels:         data.Labels,
 		ResourceId:     fmt.Sprintf("rid:finch:%s:agent:%s", c.config.Id(), uuid.New().String()),
-		Username:       rand.Text(),
-		Password:       password,
-		PasswordHash:   string(hash),
 	}
 
 	return agent, nil
@@ -108,18 +97,4 @@ func (c *Controller) __parseMetricsTargets(data *Agent) []string {
 	}
 
 	return effectiveMetricsTargets
-}
-
-func (c *Controller) __createCredentials() (string, string, error) {
-	password := rand.Text()
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", "", err
-	}
-	password, err = aes.Encrypt(c.config.Secret(), password)
-	if err != nil {
-		return "", "", err
-	}
-
-	return password, string(hash), nil
 }

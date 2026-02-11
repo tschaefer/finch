@@ -208,7 +208,7 @@
       gap: 1rem;
     }
 
-    .btn-credentials,
+    .btn-token,
     .btn-download {
       display: flex;
       align-items: center;
@@ -224,12 +224,12 @@
       text-decoration: none;
     }
 
-    .btn-credentials:hover,
+    .btn-token:hover,
     .btn-download:hover {
       background: #2a2a2a;
     }
 
-    .btn-credentials svg,
+    .btn-token svg,
     .btn-download svg {
       width: 16px;
       height: 16px;
@@ -247,7 +247,7 @@
       color: #f0f0f0;
     }
 
-    .credentials-section {
+    .token-section {
       background: #1a1a1a;
       border: 1px solid #333;
       border-radius: 4px;
@@ -255,24 +255,24 @@
       margin-bottom: 1.5rem;
     }
 
-    .credential-row {
+    .token-row {
       display: flex;
       gap: 1rem;
       align-items: center;
       margin-bottom: 0.75rem;
     }
 
-    .credential-row:last-child {
+    .token-row:last-child {
       margin-bottom: 0;
     }
 
-    .credential-label {
+    .token-label {
       font-size: 0.875rem;
       color: #999;
       min-width: 90px;
     }
 
-    .credential-value {
+    .token-value {
       background: #242424;
       padding: 0.5rem;
       border-radius: 4px;
@@ -280,6 +280,15 @@
       font-size: 0.875rem;
       color: #f0f0f0;
       flex: 1;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      max-width: 100%;
+    }
+
+    .token-expiry {
+      font-size: 0.875rem;
+      color: #f0f0f0;
+      font-family: 'Monaco', 'Courier New', monospace;
     }
 
     .agent-details {
@@ -717,7 +726,7 @@
       let currentPage = 1;
       let currentSearch = '';
       let searchTimeout = null;
-      let shownCredentials = new Set();
+      let shownTokens = new Set();
 
       ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
@@ -732,14 +741,14 @@
           case 'agents':
             document.getElementById('agents-container').innerHTML = msg.html;
             attachAgentEventListeners();
-            restoreCredentials();
+            restoreTokens();
             break;
-          case 'credentials':
-            const containers = document.querySelectorAll('.credentials-container');
+          case 'token':
+            const containers = document.querySelectorAll('.token-container');
             containers.forEach(container => {
               if (msg.html.includes(container.dataset.rid)) {
                 container.innerHTML = msg.html;
-                const button = document.querySelector(`[data-action="show-credentials"][data-rid="${container.dataset.rid}"]`);
+                const button = document.querySelector(`[data-action="show-token"][data-rid="${container.dataset.rid}"]`);
                 if (button) {
                   setLockIcon(button, true);
                 }
@@ -829,22 +838,22 @@
           });
         });
 
-        document.querySelectorAll('[data-action="show-credentials"]').forEach(btn => {
+        document.querySelectorAll('[data-action="show-token"]').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.preventDefault();
             const button = e.target.closest('button');
             const rid = button.dataset.rid;
-            const container = document.querySelector(`.credentials-container[data-rid="${rid}"]`);
+            const container = document.querySelector(`.token-container[data-rid="${rid}"]`);
 
             if (container.innerHTML.trim() === '') {
-              shownCredentials.add(rid);
+              shownTokens.add(rid);
               ws.send(JSON.stringify({
-                type: 'get_credentials',
+                type: 'get_token',
                 data: { rid: rid }
               }));
               setLockIcon(button, true);
             } else {
-              shownCredentials.delete(rid);
+              shownTokens.delete(rid);
               container.innerHTML = '';
               setLockIcon(button, false);
             }
@@ -864,16 +873,16 @@
         });
       }
 
-      function restoreCredentials() {
-        shownCredentials.forEach(rid => {
-          const container = document.querySelector(`.credentials-container[data-rid="${rid}"]`);
+      function restoreTokens() {
+        shownTokens.forEach(rid => {
+          const container = document.querySelector(`.token-container[data-rid="${rid}"]`);
           if (container) {
             ws.send(JSON.stringify({
-              type: 'get_credentials',
+              type: 'get_token',
               data: { rid: rid }
             }));
           } else {
-            shownCredentials.delete(rid);
+            shownTokens.delete(rid);
           }
         });
       }
