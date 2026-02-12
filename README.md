@@ -35,6 +35,14 @@ The API is protected by mTLS authentication; certificates and keys are provided 
 
 For the API reference, see the [proto definitions](https://github.com/tschaefer/finch/tree/main/api/proto).
 
+### Agent Authentication
+
+Registered agents authenticate using JWT tokens with a **365-day expiration**.
+Tokens are generated during agent registration and must be rotated before
+expiry. The expiration date is displayed in the dashboard and included as a
+comment in generated Alloy configurations. The regeneration happens with any
+config request.
+
 ## Web Dashboard
 
 Finch provides a lightweight dashboard for visualizing agents with real-time
