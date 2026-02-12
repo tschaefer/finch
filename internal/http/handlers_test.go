@@ -277,7 +277,7 @@ func TestWebSocketHandlesDownloadConfigMessage(t *testing.T) {
 	assert.NotEmpty(t, msg["content"])
 }
 
-func TestWebSocketHandlesGetCredentialsMessage(t *testing.T) {
+func TestWebSocketHandlesGetTokenMessage(t *testing.T) {
 	ctrl := newTestController(t)
 	server := NewServer("127.0.0.1:0", ctrl, testCfg)
 
@@ -298,7 +298,7 @@ func TestWebSocketHandlesGetCredentialsMessage(t *testing.T) {
 		}()
 
 		msg := WSMessage{
-			Type: "get_credentials",
+			Type: "get_token",
 			Data: json.RawMessage(`{"rid": "` + rid + `"}`),
 		}
 		server.handleWSMessage(conn, msg)
@@ -315,9 +315,9 @@ func TestWebSocketHandlesGetCredentialsMessage(t *testing.T) {
 	var msg WSResponse
 	err = ws.ReadJSON(&msg)
 	assert.NoError(t, err)
-	assert.Equal(t, "credentials", msg.Type)
-	assert.Contains(t, msg.HTML, "Username")
-	assert.Contains(t, msg.HTML, "Password")
+	assert.Equal(t, "token", msg.Type)
+	assert.Contains(t, msg.HTML, "Bearer Token")
+	assert.Contains(t, msg.HTML, "eyJ") // JWT tokens start with eyJ
 }
 
 func TestAgentListDataPagination(t *testing.T) {

@@ -18,21 +18,21 @@
           Config
         </button>
         <button 
-          class="btn-credentials"
-          data-action="show-credentials"
+          class="btn-token"
+          data-action="show-token"
           data-rid="{{.ResourceID}}"
         >
           <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
-          <span>Credentials</span>
+          <span>Token</span>
         </button>
         <span class="agent-status active">Active</span>
       </div>
     </div>
 
-    <div class="credentials-container" data-rid="{{.ResourceID}}"></div>
+    <div class="token-container" data-rid="{{.ResourceID}}"></div>
 
     <div class="agent-details">
       <div class="detail-row">

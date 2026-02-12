@@ -5,49 +5,64 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package auth
 
 import (
-	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
+	"github.com/tschaefer/finch/internal/config"
 	"github.com/tschaefer/finch/internal/model"
 )
 
-func setupTestModel(t *testing.T) *model.Model {
+func setupTestServer(t *testing.T) (*Server, *model.Model, *config.Config) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	assert.NoError(t, err)
 
 	err = db.AutoMigrate(&model.Agent{})
 	assert.NoError(t, err)
 
-	return model.New(db)
+	m := model.New(db)
+
+	cfg := config.NewFromData(&config.Data{
+		Secret: "test-secret-key-32-bytes-long!",
+	}, "/tmp")
+
+	server := NewServer(":0", m, cfg)
+	return server, m, cfg
 }
 
-func TestHandleAuth_ValidCredentials(t *testing.T) {
-	m := setupTestModel(t)
+func generateTestToken(cfg *config.Config, resourceId string, expiration time.Duration) string {
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"rid": resourceId,
+		"iat": now.Unix(),
+		"exp": now.Add(expiration).Unix(),
+	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-	assert.NoError(t, err)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, _ := token.SignedString([]byte(cfg.Secret()))
+	return tokenString
+}
+
+func TestHandleAuth_ValidToken(t *testing.T) {
+	server, m, cfg := setupTestServer(t)
 
 	agent := &model.Agent{
-		Hostname:     "test-host",
-		Username:     "testuser",
-		PasswordHash: string(hash),
-		ResourceId:   "test-rid",
+		Hostname:   "test-host",
+		ResourceId: "rid:test:123",
 	}
-	_, err = m.CreateAgent(agent)
+	_, err := m.CreateAgent(agent)
 	assert.NoError(t, err)
 
-	server := NewServer(":0", m)
+	token := generateTestToken(cfg, agent.ResourceId, 1*time.Hour)
 
 	req := httptest.NewRequest(http.MethodGet, "/auth", nil)
-	credentials := base64.StdEncoding.EncodeToString([]byte("testuser:password123"))
-	req.Header.Set("Authorization", "Basic "+credentials)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	w := httptest.NewRecorder()
 	server.handleAuth(w, req)
@@ -55,26 +70,20 @@ func TestHandleAuth_ValidCredentials(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestHandleAuth_InvalidPassword(t *testing.T) {
-	m := setupTestModel(t)
-
-	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-	assert.NoError(t, err)
+func TestHandleAuth_ExpiredToken(t *testing.T) {
+	server, m, cfg := setupTestServer(t)
 
 	agent := &model.Agent{
-		Hostname:     "test-host",
-		Username:     "testuser",
-		PasswordHash: string(hash),
-		ResourceId:   "test-rid",
+		Hostname:   "test-host",
+		ResourceId: "rid:test:123",
 	}
-	_, err = m.CreateAgent(agent)
+	_, err := m.CreateAgent(agent)
 	assert.NoError(t, err)
 
-	server := NewServer(":0", m)
+	token := generateTestToken(cfg, agent.ResourceId, -1*time.Hour) // Expired
 
 	req := httptest.NewRequest(http.MethodGet, "/auth", nil)
-	credentials := base64.StdEncoding.EncodeToString([]byte("testuser:wrongpassword"))
-	req.Header.Set("Authorization", "Basic "+credentials)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	w := httptest.NewRecorder()
 	server.handleAuth(w, req)
@@ -82,13 +91,13 @@ func TestHandleAuth_InvalidPassword(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func TestHandleAuth_UnknownUser(t *testing.T) {
-	m := setupTestModel(t)
-	server := NewServer(":0", m)
+func TestHandleAuth_UnknownAgent(t *testing.T) {
+	server, _, cfg := setupTestServer(t)
+
+	token := generateTestToken(cfg, "rid:unknown:999", 1*time.Hour)
 
 	req := httptest.NewRequest(http.MethodGet, "/auth", nil)
-	credentials := base64.StdEncoding.EncodeToString([]byte("unknownuser:password123"))
-	req.Header.Set("Authorization", "Basic "+credentials)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	w := httptest.NewRecorder()
 	server.handleAuth(w, req)
@@ -97,8 +106,7 @@ func TestHandleAuth_UnknownUser(t *testing.T) {
 }
 
 func TestHandleAuth_MissingAuthHeader(t *testing.T) {
-	m := setupTestModel(t)
-	server := NewServer(":0", m)
+	server, _, _ := setupTestServer(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/auth", nil)
 	w := httptest.NewRecorder()
@@ -107,38 +115,49 @@ func TestHandleAuth_MissingAuthHeader(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func TestHandleAuth_MalformedAuthHeader(t *testing.T) {
-	m := setupTestModel(t)
-	server := NewServer(":0", m)
+func TestHandleAuth_InvalidTokenFormat(t *testing.T) {
+	server, _, _ := setupTestServer(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/auth", nil)
-	req.Header.Set("Authorization", "Basic not-valid-base64!!!")
+	req.Header.Set("Authorization", "Bearer invalid-token")
 	w := httptest.NewRecorder()
 	server.handleAuth(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func TestHandleAuth_InvalidCredentialsFormat(t *testing.T) {
-	m := setupTestModel(t)
-	server := NewServer(":0", m)
+func TestHandleAuth_MissingBearerPrefix(t *testing.T) {
+	server, _, cfg := setupTestServer(t)
+
+	token := generateTestToken(cfg, "rid:test:123", 1*time.Hour)
 
 	req := httptest.NewRequest(http.MethodGet, "/auth", nil)
-	credentials := base64.StdEncoding.EncodeToString([]byte("no-colon-separator"))
-	req.Header.Set("Authorization", "Basic "+credentials)
-
+	req.Header.Set("Authorization", token) // Missing "Bearer " prefix
 	w := httptest.NewRecorder()
 	server.handleAuth(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func TestHandleAuth_NonBasicAuthScheme(t *testing.T) {
-	m := setupTestModel(t)
-	server := NewServer(":0", m)
+func TestHandleAuth_WrongSignature(t *testing.T) {
+	server, m, _ := setupTestServer(t)
+
+	agent := &model.Agent{
+		Hostname:   "test-host",
+		ResourceId: "rid:test:123",
+	}
+	_, err := m.CreateAgent(agent)
+	assert.NoError(t, err)
+
+	wrongCfg := config.NewFromData(&config.Data{
+		Secret: "wrong-secret-key-32-bytes-long",
+	}, "/tmp")
+
+	token := generateTestToken(wrongCfg, agent.ResourceId, 1*time.Hour)
 
 	req := httptest.NewRequest(http.MethodGet, "/auth", nil)
-	req.Header.Set("Authorization", "Bearer some-token")
+	req.Header.Set("Authorization", "Bearer "+token)
+
 	w := httptest.NewRecorder()
 	server.handleAuth(w, req)
 

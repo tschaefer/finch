@@ -85,9 +85,9 @@ type ServiceInfoData struct {
 	Commit   string
 }
 
-type CredentialsData struct {
-	Username   string
-	Password   string
+type TokenData struct {
+	Token      string
+	ExpiresAt  string
 	ResourceID string
 }
 
@@ -98,6 +98,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		token = r.URL.Query().Get("token")
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
+			s.log(r, slog.LevelWarn, "Failed to handle login", "error", err, "method", r.Method)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -145,6 +146,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
+		s.log(r, slog.LevelWarn, "Invalid logout method", "method", r.Method)
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -186,6 +188,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("dashboard_token")
 	if err != nil {
+		s.log(r, slog.LevelWarn, "WebSocket connection attempt without token")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -270,12 +273,12 @@ func (s *Server) handleWSMessage(conn *websocket.Conn, msg WSMessage) {
 			}
 			s.sendAgentsUpdate(conn, params.Page, params.Search)
 		}
-	case "get_credentials":
+	case "get_token":
 		var params struct {
 			RID string `json:"rid"`
 		}
 		if err := json.Unmarshal(msg.Data, &params); err == nil {
-			s.sendCredentials(conn, params.RID)
+			s.sendToken(conn, params.RID)
 		}
 	case "download_config":
 		var params struct {
@@ -431,27 +434,33 @@ func (s *Server) sendEndpointsUpdate(conn *websocket.Conn) {
 	conn.WriteJSON(response)
 }
 
-func (s *Server) sendCredentials(conn *websocket.Conn, rid string) {
+func (s *Server) sendToken(conn *websocket.Conn, rid string) {
 	agent, err := s.controller.GetAgent(rid)
 	if err != nil {
 		slog.Error("Failed to get agent", "rid", rid, "error", err)
 		return
 	}
 
-	data := CredentialsData{
-		Username:   agent.Username,
-		Password:   agent.Password,
+	token, expiresAt, err := s.controller.GenerateAgentToken(agent.ResourceId, 0)
+	if err != nil {
+		slog.Error("Failed to generate token", "rid", rid, "error", err)
+		return
+	}
+
+	data := TokenData{
+		Token:      token,
+		ExpiresAt:  expiresAt.Format("2006-01-02 15:04:05 MST"),
 		ResourceID: rid,
 	}
 
 	var buf bytes.Buffer
-	if err := templates.ExecuteTemplate(&buf, "credentials.html", data); err != nil {
-		slog.Error("Failed to render credentials template", "error", err)
+	if err := templates.ExecuteTemplate(&buf, "token.html", data); err != nil {
+		slog.Error("Failed to render token template", "error", err)
 		return
 	}
 
 	response := WSResponse{
-		Type: "credentials",
+		Type: "token",
 		HTML: buf.String(),
 	}
 	conn.WriteJSON(response)

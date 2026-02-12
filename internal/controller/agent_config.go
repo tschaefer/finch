@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/tschaefer/finch/internal/aes"
 	"github.com/tschaefer/finch/internal/model"
 )
 
@@ -22,10 +21,8 @@ loki.write "default" {
 	endpoint {
 		url = "https://{{ .ServiceName }}/loki/loki/api/v1/push"
 
-		basic_auth {
-			username = "{{ .Username }}"
-			password = "{{ .Password }}"
-		}
+		// Token expires: {{ .TokenExpiry }}
+		bearer_token = "{{ .Token }}"
 
 		tls_config {
 			insecure_skip_verify = true
@@ -138,10 +135,8 @@ prometheus.remote_write "default" {
 	endpoint {
 		url = "https://{{ .ServiceName }}/mimir/api/v1/push"
 
-		basic_auth {
-			username = "{{ .Username }}"
-			password = "{{ .Password }}"
-		}
+		// Token expires: {{ .TokenExpiry }}
+		bearer_token = "{{ .Token }}"
 
 		tls_config {
 			insecure_skip_verify = true
@@ -204,10 +199,8 @@ pyroscope.write "backend" {
 	endpoint {
 		url = "https://{{ .ServiceName }}/pyroscope"
 
-		basic_auth {
-			username = "{{ .Username }}"
-			password = "{{ .Password }}"
-		}
+		// Token expires: {{ .TokenExpiry }}
+		bearer_token = "{{ .Token }}"
 
 		tls_config {
 			insecure_skip_verify = true
@@ -227,8 +220,8 @@ pyroscope.write "backend" {
 type alloyConfigData struct {
 	ServiceName string
 	Hostname    string
-	Username    string
-	Password    string
+	Token       string
+	TokenExpiry string
 	ResourceId  string
 	LogSources  struct {
 		Journal bool
@@ -245,7 +238,7 @@ type alloyConfigData struct {
 }
 
 func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, error) {
-	password, err := aes.Decrypt(c.config.Secret(), agent.Password)
+	token, expiresAt, err := c.GenerateAgentToken(agent.ResourceId, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -263,8 +256,8 @@ func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, 
 	data := &alloyConfigData{
 		Hostname:    agent.Hostname,
 		ServiceName: c.config.Hostname(),
-		Username:    agent.Username,
-		Password:    password,
+		Token:       token,
+		TokenExpiry: expiresAt.Format("2006-01-02 15:04:05 MST"),
 		ResourceId:  agent.ResourceId,
 		LogSources: struct {
 			Journal bool

@@ -11,7 +11,6 @@ import (
 	"log/slog"
 	"text/template"
 
-	"github.com/tschaefer/finch/internal/aes"
 	"github.com/tschaefer/finch/internal/model"
 )
 
@@ -131,12 +130,6 @@ func (c *Controller) GetAgent(rid string) (*model.Agent, error) {
 		}
 		return nil, err
 	}
-
-	password, err := aes.Decrypt(c.config.Secret(), agent.Password)
-	if err != nil {
-		return nil, err
-	}
-	agent.Password = password
 
 	return agent, nil
 }

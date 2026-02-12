@@ -22,12 +22,9 @@ type Agent struct {
 	Metrics        bool       `gorm:"not null;default:false" json:"metrics"`
 	MetricsTargets []string   `gorm:"not null;default:'[]';serializer:json" json:"metrics_targets"`
 	Profiles       bool       `gorm:"not null;default:false" json:"profiles"`
-	Password       string     `gorm:"not null" json:"-"`
-	PasswordHash   string     `gorm:"not null" json:"-"`
 	RegisteredAt   time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP" json:"registered_at"`
 	ResourceId     string     `gorm:"not null;unique;uniqueIndex:uidx_agents_resource_id" json:"resource_id"`
 	Labels         []string   `gorm:"serializer:json" json:"labels"`
-	Username       string     `gorm:"not null" json:"-"`
 }
 
 var (

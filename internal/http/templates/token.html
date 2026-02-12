@@ -1,0 +1,13 @@
+<div class="token-section">
+  <div class="token-row">
+    <span class="token-label">Bearer Token:</span>
+    <code class="token-value">{{.Token}}</code>
+  </div>
+  <div class="token-row">
+    <span class="token-label">Expires At:</span>
+    <span class="token-expiry">{{.ExpiresAt}}</span>
+  </div>
+</div>
+<script>
+  document.querySelector('.token-label-{{.ResourceID}}').textContent = 'Hide Token';
+</script>
