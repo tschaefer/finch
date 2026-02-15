@@ -27,6 +27,7 @@ func (c *Controller) marshalNewAgent(data *Agent) (*model.Agent, error) {
 
 	agent := &model.Agent{
 		Hostname:       data.Hostname,
+		Node:           data.Node,
 		LogSources:     effectiveLogSources,
 		Metrics:        data.Metrics,
 		MetricsTargets: effectiveMetricsTargets,
@@ -66,7 +67,7 @@ func (c *Controller) __parseLogSources(data *Agent) ([]string, error) {
 		if err != nil {
 			continue
 		}
-		if !slices.Contains([]string{"journal", "docker", "file"}, uri.Scheme) {
+		if !slices.Contains([]string{"journal", "docker", "file", "event"}, uri.Scheme) {
 			continue
 		}
 

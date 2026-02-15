@@ -26,6 +26,7 @@ type Agent struct {
 	Metrics        bool     `json:"metrics"`
 	MetricsTargets []string `json:"metrics_targets"`
 	Profiles       bool     `json:"profiles"`
+	Node           string   `json:"node"`
 }
 
 func (c *Controller) RegisterAgent(data *Agent) (string, error) {

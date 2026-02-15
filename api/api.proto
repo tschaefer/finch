@@ -28,6 +28,7 @@ message RegisterAgentRequest {
   bool metrics = 4;
   repeated string metrics_targets = 5;
   bool profiles = 6;
+  string node = 7;
 }
 
 message RegisterAgentResponse {
@@ -53,6 +54,7 @@ message GetAgentResponse {
   repeated string metrics_targets = 6;
   bool profiles = 7;
   string created_at = 8;
+  string node = 9;
 }
 
 message ListAgentsRequest {}

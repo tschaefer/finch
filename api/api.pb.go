@@ -29,6 +29,7 @@ type RegisterAgentRequest struct {
 	Metrics        bool                   `protobuf:"varint,4,opt,name=metrics,proto3" json:"metrics,omitempty"`
 	MetricsTargets []string               `protobuf:"bytes,5,rep,name=metrics_targets,json=metricsTargets,proto3" json:"metrics_targets,omitempty"`
 	Profiles       bool                   `protobuf:"varint,6,opt,name=profiles,proto3" json:"profiles,omitempty"`
+	Node           string                 `protobuf:"bytes,7,opt,name=node,proto3" json:"node,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -103,6 +104,13 @@ func (x *RegisterAgentRequest) GetProfiles() bool {
 		return x.Profiles
 	}
 	return false
+}
+
+func (x *RegisterAgentRequest) GetNode() string {
+	if x != nil {
+		return x.Node
+	}
+	return ""
 }
 
 type RegisterAgentResponse struct {
@@ -283,6 +291,7 @@ type GetAgentResponse struct {
 	MetricsTargets []string               `protobuf:"bytes,6,rep,name=metrics_targets,json=metricsTargets,proto3" json:"metrics_targets,omitempty"`
 	Profiles       bool                   `protobuf:"varint,7,opt,name=profiles,proto3" json:"profiles,omitempty"`
 	CreatedAt      string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Node           string                 `protobuf:"bytes,9,opt,name=node,proto3" json:"node,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -369,6 +378,13 @@ func (x *GetAgentResponse) GetProfiles() bool {
 func (x *GetAgentResponse) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *GetAgentResponse) GetNode() string {
+	if x != nil {
+		return x.Node
 	}
 	return ""
 }
@@ -827,7 +843,7 @@ func (*UpdateAgentResponse) Descriptor() ([]byte, []int) {
 
 type GetDashboardTokenRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	SessionTimeout *int32                 `protobuf:"varint,1,opt,name=session_timeout,json=sessionTimeout,proto3,oneof" json:"session_timeout,omitempty"` // Session timeout in seconds (default: 1800)
+	SessionTimeout *int32                 `protobuf:"varint,1,opt,name=session_timeout,json=sessionTimeout,proto3,oneof" json:"session_timeout,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -872,7 +888,7 @@ func (x *GetDashboardTokenRequest) GetSessionTimeout() int32 {
 type GetDashboardTokenResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	ExpiresAt     string                 `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // ISO8601 timestamp
+	ExpiresAt     string                 `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	DashboardUrl  string                 `protobuf:"bytes,3,opt,name=dashboard_url,json=dashboardUrl,proto3" json:"dashboard_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -933,7 +949,7 @@ var File_api_api_proto protoreflect.FileDescriptor
 
 const file_api_api_proto_rawDesc = "" +
 	"\n" +
-	"\rapi/api.proto\x12\x05finch\"\xca\x01\n" +
+	"\rapi/api.proto\x12\x05finch\"\xde\x01\n" +
 	"\x14RegisterAgentRequest\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x16\n" +
 	"\x06labels\x18\x02 \x03(\tR\x06labels\x12\x1f\n" +
@@ -941,14 +957,15 @@ const file_api_api_proto_rawDesc = "" +
 	"logSources\x12\x18\n" +
 	"\ametrics\x18\x04 \x01(\bR\ametrics\x12'\n" +
 	"\x0fmetrics_targets\x18\x05 \x03(\tR\x0emetricsTargets\x12\x1a\n" +
-	"\bprofiles\x18\x06 \x01(\bR\bprofiles\")\n" +
+	"\bprofiles\x18\x06 \x01(\bR\bprofiles\x12\x12\n" +
+	"\x04node\x18\a \x01(\tR\x04node\")\n" +
 	"\x15RegisterAgentResponse\x12\x10\n" +
 	"\x03rid\x18\x01 \x01(\tR\x03rid\"*\n" +
 	"\x16DeregisterAgentRequest\x12\x10\n" +
 	"\x03rid\x18\x01 \x01(\tR\x03rid\"\x19\n" +
 	"\x17DeregisterAgentResponse\"#\n" +
 	"\x0fGetAgentRequest\x12\x10\n" +
-	"\x03rid\x18\x01 \x01(\tR\x03rid\"\x86\x02\n" +
+	"\x03rid\x18\x01 \x01(\tR\x03rid\"\x9a\x02\n" +
 	"\x10GetAgentResponse\x12\x1f\n" +
 	"\vresource_id\x18\x01 \x01(\tR\n" +
 	"resourceId\x12\x1a\n" +
@@ -960,7 +977,8 @@ const file_api_api_proto_rawDesc = "" +
 	"\x0fmetrics_targets\x18\x06 \x03(\tR\x0emetricsTargets\x12\x1a\n" +
 	"\bprofiles\x18\a \x01(\bR\bprofiles\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\tR\tcreatedAt\"\x13\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\x12\x12\n" +
+	"\x04node\x18\t \x01(\tR\x04node\"\x13\n" +
 	"\x11ListAgentsRequest\"=\n" +
 	"\rAgentListItem\x12\x10\n" +
 	"\x03rid\x18\x01 \x01(\tR\x03rid\x12\x1a\n" +
