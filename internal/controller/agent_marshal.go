@@ -18,6 +18,10 @@ func (c *Controller) marshalNewAgent(data *Agent) (*model.Agent, error) {
 		return nil, fmt.Errorf("hostname must not be empty")
 	}
 
+	if data.Node == "" || !slices.Contains([]string{"windows", "unix"}, data.Node) {
+		return nil, fmt.Errorf("node must be either 'windows' or 'unix'")
+	}
+
 	effectiveLogSources, err := c.__parseLogSources(data)
 	if err != nil {
 		return nil, err

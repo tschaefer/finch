@@ -241,6 +241,7 @@ func TestWebSocketHandlesDownloadConfigMessage(t *testing.T) {
 
 	agentData := &controller.Agent{
 		Hostname:   "test-host",
+		Node:       "unix",
 		LogSources: []string{"journal://"},
 	}
 	rid, err := ctrl.RegisterAgent(agentData)
@@ -283,6 +284,7 @@ func TestWebSocketHandlesGetTokenMessage(t *testing.T) {
 
 	agentData := &controller.Agent{
 		Hostname:   "test-host",
+		Node:       "unix",
 		LogSources: []string{"journal://"},
 	}
 	rid, err := ctrl.RegisterAgent(agentData)
@@ -327,6 +329,7 @@ func TestAgentListDataPagination(t *testing.T) {
 	for i := range 11 {
 		agentData := &controller.Agent{
 			Hostname:   "test-host-" + string(rune('a'+i)),
+			Node:       "unix",
 			LogSources: []string{"journal://"},
 		}
 		_, err := ctrl.RegisterAgent(agentData)
@@ -365,6 +368,7 @@ func TestAgentListDataSearch(t *testing.T) {
 
 	prodAgent := &controller.Agent{
 		Hostname:   "prod-server",
+		Node:       "unix",
 		LogSources: []string{"journal://"},
 	}
 	_, err := ctrl.RegisterAgent(prodAgent)
@@ -372,6 +376,7 @@ func TestAgentListDataSearch(t *testing.T) {
 
 	devAgent := &controller.Agent{
 		Hostname:   "dev-server",
+		Node:       "unix",
 		LogSources: []string{"journal://"},
 	}
 	_, err = ctrl.RegisterAgent(devAgent)
