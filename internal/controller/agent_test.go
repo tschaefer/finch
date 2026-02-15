@@ -44,6 +44,7 @@ func Test_RegisterAgentReturnsError_InvalidParameters(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "",
+		Node:           "unix",
 		Labels:         nil,
 		LogSources:     nil,
 		Metrics:        false,
@@ -64,6 +65,11 @@ func Test_RegisterAgentReturnsError_InvalidParameters(t *testing.T) {
 	_, err = ctrl.RegisterAgent(&data)
 	expected = "no valid log source specified"
 	assert.EqualError(t, err, expected, "register agent with invalid log source")
+
+	data.Node = "invalid"
+	_, err = ctrl.RegisterAgent(&data)
+	expected = "node must be either 'windows' or 'unix'"
+	assert.EqualError(t, err, expected, "register agent with invalid node type")
 }
 
 func Test_RegisterAgentReturnsResourceId(t *testing.T) {
@@ -74,6 +80,7 @@ func Test_RegisterAgentReturnsResourceId(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
+		Node:           "unix",
 		Labels:         []string{"key=value", "env=prod"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
@@ -114,6 +121,7 @@ func Test_DeregisterAgentSucceeds(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
+		Node:           "unix",
 		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
@@ -147,6 +155,7 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
+		Node:           "unix",
 		Labels:         []string{"key=value", "statement"},
 		LogSources:     []string{"file:///var/log/syslog", "journal://", "docker://"},
 		Metrics:        false,
@@ -181,6 +190,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host",
+		Node:           "unix",
 		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
@@ -215,6 +225,7 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host-1",
+		Node:           "unix",
 		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
@@ -227,8 +238,9 @@ func Test_ListAgentsReturnsAgents(t *testing.T) {
 
 	data = Agent{
 		Hostname:       "test-host-2",
+		Node:           "windows",
 		Labels:         []string{"env=dev"},
-		LogSources:     []string{"file:///var/log/syslog"},
+		LogSources:     []string{"event://System"},
 		Metrics:        false,
 		MetricsTargets: nil,
 		Profiles:       false,
@@ -252,6 +264,7 @@ func Test_UpdateAgentReturnsError_AgentNotFound(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "non-existent-rid",
+		Node:           "unix",
 		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
@@ -272,6 +285,7 @@ func Test_UpdateAgentSucceeds(t *testing.T) {
 
 	data := Agent{
 		Hostname:       "test-host-update",
+		Node:           "unix",
 		Labels:         []string{"key=value"},
 		LogSources:     []string{"file:///var/log/syslog"},
 		Metrics:        false,
@@ -284,6 +298,7 @@ func Test_UpdateAgentSucceeds(t *testing.T) {
 
 	updatedData := Agent{
 		Labels:         []string{"env=staging"},
+		Node:           "unix",
 		LogSources:     []string{"journal://"},
 		Metrics:        true,
 		MetricsTargets: []string{"http://localhost:9100/metrics"},

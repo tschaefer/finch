@@ -79,6 +79,7 @@ func Test_MigrateSucceeds(t *testing.T) {
 		"registered_at",
 		"resource_id",
 		"updated_at",
+		"node",
 	}
 
 	assert.Equal(t, len(results), len(columns), "agents table should have correct number of columns")
