@@ -46,6 +46,7 @@ func newController(t *testing.T) *controller.Controller {
 func registerAgent(t *testing.T, server *AgentServer, hostname string) *api.RegisterAgentResponse {
 	req := &api.RegisterAgentRequest{
 		Hostname:   hostname,
+		Node:       "unix",
 		LogSources: []string{"journal://"},
 	}
 	resp, err := server.RegisterAgent(context.Background(), req)
@@ -62,6 +63,7 @@ func TestRegisterAgentReturnsResourceId(t *testing.T) {
 
 	req := &api.RegisterAgentRequest{
 		Hostname:   "test-host",
+		Node:       "unix",
 		LogSources: []string{"journal://"},
 	}
 	resp, err := server.RegisterAgent(context.Background(), req)
@@ -77,6 +79,7 @@ func TestRegisterAgentReturnsError_AgentAlreadyExists(t *testing.T) {
 
 	req := &api.RegisterAgentRequest{
 		Hostname:   "existing",
+		Node:       "unix",
 		LogSources: []string{"journal://"},
 	}
 	resp, err := server.RegisterAgent(context.Background(), req)
@@ -92,6 +95,7 @@ func TestRegisterAgentReturnsError_InvalidArguments(t *testing.T) {
 
 	req := &api.RegisterAgentRequest{
 		Hostname:   "",
+		Node:       "unix",
 		LogSources: []string{"journal://"},
 	}
 

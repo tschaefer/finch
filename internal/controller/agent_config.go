@@ -129,6 +129,15 @@ loki.source.file "file" {
 }
 {{ end -}}
 
+{{ if .LogSources.Events }}
+{{ range $index, $source := .LogSources.Events }}
+loki.source.windowsevent "event_{{ $index }}" {
+	eventlog_name = "{{ $source }}"
+	forward_to    = [loki.write.default.receiver]
+}
+{{ end -}}
+{{ end -}}
+
 {{ if .Metrics }}
 
 prometheus.remote_write "default" {
@@ -151,6 +160,7 @@ prometheus.remote_write "default" {
 	}
 }
 
+{{ if eq .Node "unix" }}
 prometheus.exporter.unix "node" {
 	include_exporter_metrics = true
 	enable_collectors = [
@@ -163,6 +173,18 @@ prometheus.scrape "node" {
 	forward_to      = [prometheus.remote_write.default.receiver]
 	scrape_interval = "15s"
 }
+{{ end -}}
+
+{{ if eq .Node "windows" }}
+prometheus.exporter.windows "node" {}
+
+prometheus.scrape "node" {
+	targets         = prometheus.exporter.windows.node.targets
+	forward_to      = [prometheus.remote_write.default.receiver]
+	scrape_interval = "15s"
+}
+{{ end -}}
+
 
 prometheus.receive_http "default" {
 	http {
@@ -220,6 +242,7 @@ pyroscope.write "backend" {
 type alloyConfigData struct {
 	ServiceName string
 	Hostname    string
+	Node        string
 	Token       string
 	TokenExpiry string
 	ResourceId  string
@@ -227,6 +250,7 @@ type alloyConfigData struct {
 		Journal bool
 		Docker  bool
 		Files   []string
+		Events  []string
 	}
 	Metrics        bool
 	MetricsTargets []struct {
@@ -255,6 +279,7 @@ func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, 
 
 	data := &alloyConfigData{
 		Hostname:    agent.Hostname,
+		Node:        agent.Node,
 		ServiceName: c.config.Hostname(),
 		Token:       token,
 		TokenExpiry: expiresAt.Format("2006-01-02 15:04:05 MST"),
@@ -263,10 +288,12 @@ func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, 
 			Journal bool
 			Docker  bool
 			Files   []string
+			Events  []string
 		}{
 			Journal: false,
 			Docker:  false,
 			Files:   make([]string, 0),
+			Events:  make([]string, 0),
 		},
 		Metrics: agent.Metrics,
 		MetricsTargets: make([]struct {
@@ -291,6 +318,9 @@ func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, 
 		case "file":
 			files = append(files, fmt.Sprintf("{__path__ = \"%s\"}", uri.Path))
 			data.LogSources.Files = files
+		case "event":
+			events := append(data.LogSources.Events, uri.Host)
+			data.LogSources.Events = events
 		default:
 			continue
 		}

@@ -18,6 +18,10 @@ func (c *Controller) marshalNewAgent(data *Agent) (*model.Agent, error) {
 		return nil, fmt.Errorf("hostname must not be empty")
 	}
 
+	if data.Node == "" || !slices.Contains([]string{"windows", "unix"}, data.Node) {
+		return nil, fmt.Errorf("node must be either 'windows' or 'unix'")
+	}
+
 	effectiveLogSources, err := c.__parseLogSources(data)
 	if err != nil {
 		return nil, err
@@ -27,6 +31,7 @@ func (c *Controller) marshalNewAgent(data *Agent) (*model.Agent, error) {
 
 	agent := &model.Agent{
 		Hostname:       data.Hostname,
+		Node:           data.Node,
 		LogSources:     effectiveLogSources,
 		Metrics:        data.Metrics,
 		MetricsTargets: effectiveMetricsTargets,
@@ -66,7 +71,7 @@ func (c *Controller) __parseLogSources(data *Agent) ([]string, error) {
 		if err != nil {
 			continue
 		}
-		if !slices.Contains([]string{"journal", "docker", "file"}, uri.Scheme) {
+		if !slices.Contains([]string{"journal", "docker", "file", "event"}, uri.Scheme) {
 			continue
 		}
 

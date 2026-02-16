@@ -25,6 +25,7 @@ type Agent struct {
 	RegisteredAt   time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP" json:"registered_at"`
 	ResourceId     string     `gorm:"not null;unique;uniqueIndex:uidx_agents_resource_id" json:"resource_id"`
 	Labels         []string   `gorm:"serializer:json" json:"labels"`
+	Node           string     `gorm:"not null;default:'unix'" json:"node"`
 }
 
 var (

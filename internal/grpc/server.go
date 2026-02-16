@@ -71,6 +71,7 @@ func (s *AgentServer) RegisterAgent(ctx context.Context, req *api.RegisterAgentR
 		Metrics:        req.Metrics,
 		MetricsTargets: req.MetricsTargets,
 		Profiles:       req.Profiles,
+		Node:           req.Node,
 	}
 
 	rid, err := s.controller.RegisterAgent(agent)
@@ -122,6 +123,7 @@ func (s *AgentServer) GetAgent(ctx context.Context, req *api.GetAgentRequest) (*
 		MetricsTargets: agent.MetricsTargets,
 		Profiles:       agent.Profiles,
 		CreatedAt:      agent.CreatedAt.Format(time.RFC3339),
+		Node:           agent.Node,
 	}, nil
 }
 
