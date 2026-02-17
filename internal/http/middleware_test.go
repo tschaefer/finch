@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tschaefer/finch/internal/controller"
 )
 
 func TestAuthMiddlewareRedirectsToLogin_WhenNoToken(t *testing.T) {
@@ -56,7 +57,7 @@ func TestAuthMiddlewareSucceeds_WhenValidCookie(t *testing.T) {
 	ctrl := newTestController(t)
 	server := NewServer("127.0.0.1:0", ctrl, testCfg)
 
-	resp, err := ctrl.GetDashboardToken(1800)
+	resp, err := ctrl.GenerateDashboardToken(1800, controller.RoleOperator, []string{})
 	assert.NoError(t, err)
 
 	handlerCalled := false

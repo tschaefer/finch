@@ -203,8 +203,15 @@ func (s *DashboardServer) GetDashboardToken(ctx context.Context, req *api.GetDas
 		}
 	}
 
-	tokenResp, err := s.controller.GetDashboardToken(sessionTimeout)
+	if req.Role == "" {
+		req.Role = controller.RoleViewer
+	}
+
+	tokenResp, err := s.controller.GenerateDashboardToken(sessionTimeout, req.Role, req.Scope)
 	if err != nil {
+		if errors.Is(err, controller.ErrInvalidRole) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 

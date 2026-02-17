@@ -12,26 +12,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-
 	"github.com/tschaefer/finch/internal/config"
-	"github.com/tschaefer/finch/internal/model"
+	"github.com/tschaefer/finch/internal/controller"
 )
 
 type Server struct {
-	model  *model.Model
-	config *config.Config
-	server *http.Server
+	controller *controller.Controller
+	config     *config.Config
+	server     *http.Server
 }
 
-func NewServer(addr string, model *model.Model, cfg *config.Config) *Server {
+func NewServer(addr string, ctrl *controller.Controller, cfg *config.Config) *Server {
 	slog.Debug("Initializing Auth Server", "addr", addr)
 
 	mux := http.NewServeMux()
 
 	s := &Server{
-		model:  model,
-		config: cfg,
+		controller: ctrl,
+		config:     cfg,
 		server: &http.Server{
 			Addr:         addr,
 			Handler:      mux,
@@ -81,41 +79,13 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return []byte(s.config.Secret()), nil
-	})
-
-	if err != nil || !token.Valid {
-		s.log(r, slog.LevelWarn, "Auth request has invalid or expired token")
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		s.log(r, slog.LevelWarn, "Auth request has invalid token claims")
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	resourceId, ok := claims["rid"].(string)
-	if !ok {
-		s.log(r, slog.LevelWarn, "Auth request missing rid claim")
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	agent := &model.Agent{ResourceId: resourceId}
-	_, err = s.model.GetAgent(agent)
+	err := s.controller.ValidateAgentToken(tokenString)
 	if err != nil {
-		s.log(r, slog.LevelWarn, "Auth request for unknown agent", "rid", resourceId)
+		s.log(r, slog.LevelWarn, "Auth request failed validation", "error", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	s.log(r, slog.LevelDebug, "Auth request successful", "rid", resourceId)
+	s.log(r, slog.LevelDebug, "Auth request succeeded")
 	w.WriteHeader(http.StatusOK)
 }
