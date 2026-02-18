@@ -16,6 +16,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/tschaefer/finch/internal/config"
+	"github.com/tschaefer/finch/internal/controller"
 	"github.com/tschaefer/finch/internal/model"
 )
 
@@ -32,13 +33,16 @@ func setupTestServer(t *testing.T) (*Server, *model.Model, *config.Config) {
 		Secret: "test-secret-key-32-bytes-long!",
 	}, "/tmp")
 
-	server := NewServer(":0", m, cfg)
+	ctrl := controller.New(m, cfg)
+	server := NewServer(":0", ctrl, cfg)
 	return server, m, cfg
 }
 
 func generateTestToken(cfg *config.Config, resourceId string, expiration time.Duration) string {
 	now := time.Now()
 	claims := jwt.MapClaims{
+		"iss": "finch",
+		"sub": "agent",
 		"rid": resourceId,
 		"iat": now.Unix(),
 		"exp": now.Add(expiration).Unix(),

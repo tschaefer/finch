@@ -162,7 +162,7 @@ func (m *Manager) runHTTPServer(httpAddr string) (*httpserver.Server, error) {
 }
 
 func (m *Manager) runAuthServer(authAddr string) (*auth.Server, error) {
-	authServer := auth.NewServer(authAddr, m.model, m.config)
+	authServer := auth.NewServer(authAddr, m.controller, m.config)
 	if err := authServer.Start(); err != nil {
 		return nil, err
 	}

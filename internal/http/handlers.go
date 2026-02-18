@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/tschaefer/finch/internal/controller"
 	"github.com/tschaefer/finch/internal/version"
 )
 
@@ -52,15 +53,17 @@ func init() {
 }
 
 type AgentData struct {
-	ResourceID     string
-	Hostname       string
-	Labels         []string
-	LogSources     []string
-	Metrics        bool
-	MetricsTargets []string
-	Profiles       bool
-	RegisteredAt   string
-	Active         bool
+	ResourceID        string
+	Hostname          string
+	Labels            []string
+	LogSources        []string
+	Metrics           bool
+	MetricsTargets    []string
+	Profiles          bool
+	RegisteredAt      string
+	Active            bool
+	CanViewToken      bool
+	CanDownloadConfig bool
 }
 
 type AgentListData struct {
@@ -119,7 +122,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.controller.ValidateDashboardToken(token); err != nil {
+	if _, err := s.controller.ValidateDashboardToken(token); err != nil {
 		data := map[string]string{"Error": "invalid"}
 		if err := templates.ExecuteTemplate(w, "login.html", data); err != nil {
 			slog.Error("Failed to render login", "error", err)
@@ -194,6 +197,11 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	token := cookie.Value
 
+	claims, ok := r.Context().Value(dashboardClaimsKey).(*controller.DashboardClaims)
+	if !ok {
+		claims = &controller.DashboardClaims{Role: controller.RoleViewer, Scope: []string{}}
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error("Failed to upgrade WebSocket", "error", err)
@@ -206,9 +214,9 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	currentPage := 1
 	currentSearch := ""
 
-	s.sendStatsUpdate(conn)
+	s.sendStatsUpdate(conn, claims)
 	s.sendEndpointsUpdate(conn)
-	s.sendAgentsUpdate(conn, currentPage, currentSearch)
+	s.sendAgentsUpdate(conn, currentPage, currentSearch, claims)
 
 	agentEvents := s.controller.SubscribeAgentEvents()
 
@@ -237,7 +245,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			s.handleWSMessage(conn, msg)
+			s.handleWSMessage(conn, msg, claims)
 		}
 	}()
 
@@ -247,20 +255,20 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case <-ticker.C:
-			if err := s.controller.ValidateDashboardToken(token); err != nil {
+			if _, err := s.controller.ValidateDashboardToken(token); err != nil {
 				_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Token expired"))
 				return
 			}
 		case <-agentEvents:
-			s.sendAgentsUpdate(conn, currentPage, currentSearch)
-			s.sendStatsUpdate(conn)
+			s.sendAgentsUpdate(conn, currentPage, currentSearch, claims)
+			s.sendStatsUpdate(conn, claims)
 		case <-done:
 			return
 		}
 	}
 }
 
-func (s *Server) handleWSMessage(conn *websocket.Conn, msg WSMessage) {
+func (s *Server) handleWSMessage(conn *websocket.Conn, msg WSMessage, claims *controller.DashboardClaims) {
 	switch msg.Type {
 	case "get_agents":
 		var params struct {
@@ -271,26 +279,26 @@ func (s *Server) handleWSMessage(conn *websocket.Conn, msg WSMessage) {
 			if params.Page < 1 {
 				params.Page = 1
 			}
-			s.sendAgentsUpdate(conn, params.Page, params.Search)
+			s.sendAgentsUpdate(conn, params.Page, params.Search, claims)
 		}
 	case "get_token":
 		var params struct {
 			RID string `json:"rid"`
 		}
 		if err := json.Unmarshal(msg.Data, &params); err == nil {
-			s.sendToken(conn, params.RID)
+			s.sendToken(conn, params.RID, claims)
 		}
 	case "download_config":
 		var params struct {
 			RID string `json:"rid"`
 		}
 		if err := json.Unmarshal(msg.Data, &params); err == nil {
-			s.sendConfig(conn, params.RID)
+			s.sendConfig(conn, params.RID, claims)
 		}
 	}
 }
 
-func (s *Server) sendAgentsUpdate(conn *websocket.Conn, page int, search string) {
+func (s *Server) sendAgentsUpdate(conn *websocket.Conn, page int, search string, claims *controller.DashboardClaims) {
 	agentList, err := s.controller.ListAgents()
 	if err != nil {
 		slog.Error("Failed to list agents", "error", err)
@@ -304,16 +312,22 @@ func (s *Server) sendAgentsUpdate(conn *websocket.Conn, page int, search string)
 			continue
 		}
 
+		if !s.controller.CanAccessAgent(claims, agent.ResourceId, agent.Hostname) {
+			continue
+		}
+
 		agentData := AgentData{
-			ResourceID:     agent.ResourceId,
-			Hostname:       agent.Hostname,
-			Labels:         agent.Labels,
-			LogSources:     agent.LogSources,
-			Metrics:        agent.Metrics,
-			MetricsTargets: agent.MetricsTargets,
-			Profiles:       agent.Profiles,
-			RegisteredAt:   agent.RegisteredAt.Format("2006-01-02 15:04:05"),
-			Active:         true,
+			ResourceID:        agent.ResourceId,
+			Hostname:          agent.Hostname,
+			Labels:            agent.Labels,
+			LogSources:        agent.LogSources,
+			Metrics:           agent.Metrics,
+			MetricsTargets:    agent.MetricsTargets,
+			Profiles:          agent.Profiles,
+			RegisteredAt:      agent.RegisteredAt.Format("2006-01-02 15:04:05"),
+			Active:            true,
+			CanViewToken:      s.controller.CanViewTokens(claims),
+			CanDownloadConfig: s.controller.CanDownloadConfig(claims),
 		}
 
 		if search == "" {
@@ -379,7 +393,7 @@ func (s *Server) sendAgentsUpdate(conn *websocket.Conn, page int, search string)
 	conn.WriteJSON(response)
 }
 
-func (s *Server) sendStatsUpdate(conn *websocket.Conn) {
+func (s *Server) sendStatsUpdate(conn *websocket.Conn, claims *controller.DashboardClaims) {
 	agentList, err := s.controller.ListAgents()
 	if err != nil {
 		slog.Error("Failed to list agents", "error", err)
@@ -387,7 +401,7 @@ func (s *Server) sendStatsUpdate(conn *websocket.Conn) {
 	}
 
 	stats := StatsData{
-		TotalAgents: len(agentList),
+		TotalAgents: 0,
 	}
 
 	for _, a := range agentList {
@@ -395,6 +409,10 @@ func (s *Server) sendStatsUpdate(conn *websocket.Conn) {
 		if err != nil {
 			continue
 		}
+		if !s.controller.CanAccessAgent(claims, agent.ResourceId, agent.Hostname) {
+			continue
+		}
+		stats.TotalAgents++
 		if agent.Metrics {
 			stats.MetricsEnabled++
 		}
@@ -434,10 +452,25 @@ func (s *Server) sendEndpointsUpdate(conn *websocket.Conn) {
 	conn.WriteJSON(response)
 }
 
-func (s *Server) sendToken(conn *websocket.Conn, rid string) {
+func (s *Server) sendToken(conn *websocket.Conn, rid string, claims *controller.DashboardClaims) {
+	if !s.controller.CanViewTokens(claims) {
+		slog.Warn("Unauthorized token access attempt", "rid", rid, "role", claims.Role)
+		response := map[string]string{
+			"type":  "token_error",
+			"error": "Unauthorized",
+		}
+		conn.WriteJSON(response)
+		return
+	}
+
 	agent, err := s.controller.GetAgent(rid)
 	if err != nil {
 		slog.Error("Failed to get agent", "rid", rid, "error", err)
+		return
+	}
+
+	if !s.controller.CanAccessAgent(claims, agent.ResourceId, agent.Hostname) {
+		slog.Warn("Unauthorized agent access attempt", "rid", rid, "scope", claims.Scope)
 		return
 	}
 
@@ -466,7 +499,38 @@ func (s *Server) sendToken(conn *websocket.Conn, rid string) {
 	conn.WriteJSON(response)
 }
 
-func (s *Server) sendConfig(conn *websocket.Conn, rid string) {
+func (s *Server) sendConfig(conn *websocket.Conn, rid string, claims *controller.DashboardClaims) {
+	if !s.controller.CanDownloadConfig(claims) {
+		slog.Warn("Unauthorized config download attempt", "rid", rid, "role", claims.Role)
+		response := map[string]string{
+			"type":  "config_error",
+			"error": "Unauthorized",
+		}
+		conn.WriteJSON(response)
+		return
+	}
+
+	agent, err := s.controller.GetAgent(rid)
+	if err != nil {
+		slog.Error("Failed to get agent", "rid", rid, "error", err)
+		response := map[string]string{
+			"type":  "config_error",
+			"error": "Failed to get agent",
+		}
+		conn.WriteJSON(response)
+		return
+	}
+
+	if !s.controller.CanAccessAgent(claims, agent.ResourceId, agent.Hostname) {
+		slog.Warn("Unauthorized config access attempt", "rid", rid, "scope", claims.Scope)
+		response := map[string]string{
+			"type":  "config_error",
+			"error": "Unauthorized",
+		}
+		conn.WriteJSON(response)
+		return
+	}
+
 	config, err := s.controller.CreateAgentConfig(rid)
 	if err != nil {
 		slog.Error("Failed to create agent config", "rid", rid, "error", err)

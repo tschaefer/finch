@@ -38,16 +38,16 @@ func NewServer(addr string, ctrl *controller.Controller, cfg *config.Config) *Se
 		},
 	}
 
-	secureLogin := s.securityHeaders(http.HandlerFunc(s.handleLogin))
+	secureLogin := s.responseHeaders(http.HandlerFunc(s.handleLogin))
 	mux.Handle("/login", secureLogin)
 
-	secureLogout := s.securityHeaders(s.authMiddleware(http.HandlerFunc(s.handleLogout)))
+	secureLogout := s.responseHeaders(s.authMiddleware(http.HandlerFunc(s.handleLogout)))
 	mux.Handle("/logout", secureLogout)
 
-	secureDashboard := s.securityHeaders(s.authMiddleware(http.HandlerFunc(s.handleDashboard)))
+	secureDashboard := s.responseHeaders(s.authMiddleware(http.HandlerFunc(s.handleDashboard)))
 	mux.Handle("/dashboard", secureDashboard)
 
-	secureWS := s.securityHeaders(s.authMiddleware(http.HandlerFunc(s.handleWebSocket)))
+	secureWS := s.responseHeaders(s.authMiddleware(http.HandlerFunc(s.handleWebSocket)))
 	mux.Handle("/ws", secureWS)
 
 	return s

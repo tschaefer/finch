@@ -5,11 +5,18 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package http
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
+
+	"github.com/tschaefer/finch/internal/version"
 )
 
-func (s *Server) securityHeaders(next http.Handler) http.Handler {
+type contextKey string
+
+const dashboardClaimsKey contextKey = "dashboardClaims"
+
+func (s *Server) responseHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy",
 			"default-src 'self'; "+
@@ -37,6 +44,9 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
 
+		w.Header().Set("X-Finch-Commit", version.Commit())
+		w.Header().Set("X-Finch-Release", version.Release())
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -58,7 +68,8 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if err := s.controller.ValidateDashboardToken(cookie.Value); err != nil {
+		claims, err := s.controller.ValidateDashboardToken(cookie.Value)
+		if err != nil {
 			clearCookie := &http.Cookie{
 				Name:     "dashboard_token",
 				Value:    "",
@@ -81,6 +92,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), dashboardClaimsKey, claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

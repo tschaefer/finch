@@ -99,6 +99,8 @@ message UpdateAgentResponse {}
 
 message GetDashboardTokenRequest {
   optional int32 session_timeout = 1;
+  string role = 2;
+  repeated string scope = 3;
 }
 
 message GetDashboardTokenResponse {

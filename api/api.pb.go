@@ -844,6 +844,8 @@ func (*UpdateAgentResponse) Descriptor() ([]byte, []int) {
 type GetDashboardTokenRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	SessionTimeout *int32                 `protobuf:"varint,1,opt,name=session_timeout,json=sessionTimeout,proto3,oneof" json:"session_timeout,omitempty"`
+	Role           string                 `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
+	Scope          []string               `protobuf:"bytes,3,rep,name=scope,proto3" json:"scope,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -883,6 +885,20 @@ func (x *GetDashboardTokenRequest) GetSessionTimeout() int32 {
 		return *x.SessionTimeout
 	}
 	return 0
+}
+
+func (x *GetDashboardTokenRequest) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *GetDashboardTokenRequest) GetScope() []string {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
 }
 
 type GetDashboardTokenResponse struct {
@@ -1005,9 +1021,11 @@ const file_api_api_proto_rawDesc = "" +
 	"\ametrics\x18\x04 \x01(\bR\ametrics\x12'\n" +
 	"\x0fmetrics_targets\x18\x05 \x03(\tR\x0emetricsTargets\x12\x1a\n" +
 	"\bprofiles\x18\x06 \x01(\bR\bprofiles\"\x15\n" +
-	"\x13UpdateAgentResponse\"\\\n" +
+	"\x13UpdateAgentResponse\"\x86\x01\n" +
 	"\x18GetDashboardTokenRequest\x12,\n" +
-	"\x0fsession_timeout\x18\x01 \x01(\x05H\x00R\x0esessionTimeout\x88\x01\x01B\x12\n" +
+	"\x0fsession_timeout\x18\x01 \x01(\x05H\x00R\x0esessionTimeout\x88\x01\x01\x12\x12\n" +
+	"\x04role\x18\x02 \x01(\tR\x04role\x12\x14\n" +
+	"\x05scope\x18\x03 \x03(\tR\x05scopeB\x12\n" +
 	"\x10_session_timeout\"u\n" +
 	"\x19GetDashboardTokenResponse\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +

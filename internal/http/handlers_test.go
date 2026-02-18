@@ -20,7 +20,7 @@ func TestHandleDashboardRendersTemplate(t *testing.T) {
 	ctrl := newTestController(t)
 	server := NewServer("127.0.0.1:0", ctrl, testCfg)
 
-	resp, err := ctrl.GetDashboardToken(1800)
+	resp, err := ctrl.GenerateDashboardToken(1800, controller.RoleOperator, []string{})
 	assert.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
@@ -55,7 +55,7 @@ func TestHandleWebSocketUpgrade(t *testing.T) {
 	ctrl := newTestController(t)
 	server := NewServer("127.0.0.1:0", ctrl, testCfg)
 
-	resp, err := ctrl.GetDashboardToken(1800)
+	resp, err := ctrl.GenerateDashboardToken(1800, controller.RoleOperator, []string{})
 	assert.NoError(t, err)
 
 	testServer := httptest.NewServer(server.server.Handler)
@@ -124,7 +124,7 @@ func TestWebSocketSendsStatsUpdate(t *testing.T) {
 			_ = conn.Close()
 		}()
 
-		server.sendStatsUpdate(conn)
+		server.sendStatsUpdate(conn, &controller.DashboardClaims{Role: controller.RoleOperator, Scope: []string{}})
 	}))
 	defer testServer.Close()
 
@@ -186,7 +186,7 @@ func TestWebSocketSendsAgentsUpdate(t *testing.T) {
 		}
 		defer func() { _ = conn.Close() }()
 
-		server.sendAgentsUpdate(conn, 1, "")
+		server.sendAgentsUpdate(conn, 1, "", &controller.DashboardClaims{Role: controller.RoleOperator, Scope: []string{}})
 	}))
 	defer testServer.Close()
 
@@ -220,7 +220,7 @@ func TestWebSocketHandlesGetAgentsMessage(t *testing.T) {
 			Type: "get_agents",
 			Data: json.RawMessage(`{"page": 1, "search": ""}`),
 		}
-		server.handleWSMessage(conn, msg)
+		server.handleWSMessage(conn, msg, &controller.DashboardClaims{Role: controller.RoleOperator, Scope: []string{}})
 	}))
 	defer testServer.Close()
 
@@ -260,7 +260,7 @@ func TestWebSocketHandlesDownloadConfigMessage(t *testing.T) {
 			Type: "download_config",
 			Data: json.RawMessage(`{"rid": "` + rid + `"}`),
 		}
-		server.handleWSMessage(conn, msg)
+		server.handleWSMessage(conn, msg, &controller.DashboardClaims{Role: controller.RoleAdmin, Scope: []string{}})
 	}))
 	defer testServer.Close()
 
@@ -303,7 +303,7 @@ func TestWebSocketHandlesGetTokenMessage(t *testing.T) {
 			Type: "get_token",
 			Data: json.RawMessage(`{"rid": "` + rid + `"}`),
 		}
-		server.handleWSMessage(conn, msg)
+		server.handleWSMessage(conn, msg, &controller.DashboardClaims{Role: controller.RoleOperator, Scope: []string{}})
 	}))
 	defer testServer.Close()
 
@@ -345,7 +345,7 @@ func TestAgentListDataPagination(t *testing.T) {
 			_ = conn.Close()
 		}()
 
-		server.sendAgentsUpdate(conn, 1, "")
+		server.sendAgentsUpdate(conn, 1, "", &controller.DashboardClaims{Role: controller.RoleOperator, Scope: []string{}})
 	}))
 	defer testServer.Close()
 
@@ -391,7 +391,7 @@ func TestAgentListDataSearch(t *testing.T) {
 			_ = conn.Close()
 		}()
 
-		server.sendAgentsUpdate(conn, 1, "prod")
+		server.sendAgentsUpdate(conn, 1, "prod", &controller.DashboardClaims{Role: controller.RoleOperator, Scope: []string{}})
 	}))
 	defer testServer.Close()
 
