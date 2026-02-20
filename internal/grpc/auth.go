@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/tschaefer/finch/internal/config"
@@ -22,7 +23,7 @@ import (
 
 const (
 	AuthHeader = "x-forwarded-tls-client-cert"
-	CAPath     = "%s/traefik/etc/certs.d/ca.pem"
+	CADirPath  = "%s/traefik/etc/certs.d"
 	PEMHeader  = "-----BEGIN CERTIFICATE-----\n"
 	PEMFooter  = "\n-----END CERTIFICATE-----\n"
 )
@@ -65,19 +66,38 @@ func (a *AuthInterceptor) authenticate(ctx context.Context) error {
 	}
 
 	certPem := fmt.Sprintf("%s%s%s", PEMHeader, values[0], PEMFooter)
-	caPem, err := os.ReadFile(fmt.Sprintf(CAPath, a.config.Library()))
+	caDirPath := fmt.Sprintf(CADirPath, a.config.Library())
+
+	pattern := filepath.Join(caDirPath, "*.pem")
+	caFiles, err := filepath.Glob(pattern)
 	if err != nil {
-		slog.Error("failed to read CA certificate", "error", err)
+		slog.Error("failed to list CA certificates with glob pattern", "pattern", pattern, "error", err)
 		return status.Error(418, "I'm a teapot")
 	}
 
-	valid, err := a.clientCertIsValid([]byte(certPem), caPem)
-	if err != nil || !valid {
-		slog.Warn("client certificate validation failed", "error", err)
+	if len(caFiles) == 0 {
+		slog.Error("no CA certificates found in directory", "directory", caDirPath)
 		return status.Error(418, "I'm a teapot")
 	}
 
-	return nil
+	for _, caFile := range caFiles {
+		caPem, err := os.ReadFile(caFile)
+		if err != nil {
+			slog.Error("failed to read CA certificate", "path", caFile, "error", err)
+			continue
+		}
+
+		valid, err := a.clientCertIsValid([]byte(certPem), caPem)
+		if err != nil {
+			continue
+		}
+		if valid {
+			return nil
+		}
+	}
+
+	slog.Warn("client certificate is not valid")
+	return status.Error(418, "I'm a teapot")
 }
 
 func (a *AuthInterceptor) parseCertFromPEM(bytes []byte) (*x509.Certificate, error) {

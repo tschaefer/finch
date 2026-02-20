@@ -67,12 +67,13 @@ func setup(t *testing.T) string {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
 
-	capath := fmt.Sprintf(CAPath, library)
-	if err := os.MkdirAll(filepath.Dir(capath), 0700); err != nil {
+	caDirPath := fmt.Sprintf(CADirPath, library)
+	if err := os.MkdirAll(caDirPath, 0700); err != nil {
 		t.Fatalf("failed to create ca dir: %v", err)
 	}
 
-	if err := os.WriteFile(capath, []byte(TestCA), 0600); err != nil {
+	cafile := filepath.Join(caDirPath, "rid:finchctl:47110815.pem")
+	if err := os.WriteFile(cafile, []byte(TestCA), 0600); err != nil {
 		t.Fatalf("failed to write ca pem: %v", err)
 	}
 
@@ -144,6 +145,72 @@ func TestAuthInterceptorReturnsError_InvalidCert(t *testing.T) {
 	}
 
 	_, err := unary(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
+	assert.Error(t, err)
+	st, ok := status.FromError(err)
+	assert.True(t, ok)
+	assert.Equal(t, "Code(418)", st.Code().String())
+	assert.False(t, handlerCalled, "handler must not be called on auth failure")
+}
+
+func TestAuthInterceptorSucceeds_MultipleCAsFirstFailsLaterSucceeds(t *testing.T) {
+	library := setup(t)
+	defer func() {
+		_ = os.RemoveAll(library)
+	}()
+
+	caDirPath := fmt.Sprintf(CADirPath, library)
+	badCAFile := filepath.Join(caDirPath, "aaa_bad.pem")
+	if err := os.WriteFile(badCAFile, []byte(TestInvalidCert), 0600); err != nil {
+		t.Fatalf("failed to write bad ca pem: %v", err)
+	}
+
+	cfg := config.NewFromData(&config.Data{}, library)
+	interceptor := NewAuthInterceptor(cfg)
+	unary := interceptor.Unary()
+
+	md := metadata.Pairs(AuthHeader, strings.TrimSpace(TestCert))
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	called := false
+	handler := func(ctx context.Context, req any) (any, error) {
+		called = true
+		return "ok", nil
+	}
+
+	resp, err := unary(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
+	assert.NoError(t, err)
+	assert.Equal(t, "ok", resp)
+	assert.True(t, called, "handler should have been called")
+}
+
+func TestAuthInterceptorReturnsError_EmptyCADirectory(t *testing.T) {
+	library, err := os.MkdirTemp("", "finch-test-lib-")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer func() {
+		_ = os.RemoveAll(library)
+	}()
+
+	caDirPath := fmt.Sprintf(CADirPath, library)
+	if err := os.MkdirAll(caDirPath, 0700); err != nil {
+		t.Fatalf("failed to create ca dir: %v", err)
+	}
+
+	cfg := config.NewFromData(&config.Data{}, library)
+	interceptor := NewAuthInterceptor(cfg)
+	unary := interceptor.Unary()
+
+	md := metadata.Pairs(AuthHeader, strings.TrimSpace(TestCert))
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	handlerCalled := false
+	handler := func(ctx context.Context, req any) (any, error) {
+		handlerCalled = true
+		return nil, nil
+	}
+
+	_, err = unary(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
 	assert.Error(t, err)
 	st, ok := status.FromError(err)
 	assert.True(t, ok)
