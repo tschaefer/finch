@@ -34,7 +34,7 @@ func Test_NewReturnsError_PathNotExist(t *testing.T) {
 
 func Test_ConnectionReturnsGormDB(t *testing.T) {
 	cfg := config.NewFromData(&config.Data{
-		Database: "sqlite://:memory:",
+		Database: "sqlite:///:memory:",
 	}, "")
 
 	db, err := New(cfg)
@@ -48,7 +48,7 @@ func Test_ConnectionReturnsGormDB(t *testing.T) {
 
 func Test_MigrateSucceeds(t *testing.T) {
 	cfg := config.NewFromData(&config.Data{
-		Database: "sqlite://:memory:",
+		Database: "sqlite:///:memory:",
 	}, "")
 
 	db, err := New(cfg)
@@ -97,7 +97,7 @@ func Test_MigrateSucceeds(t *testing.T) {
 
 func Test_MigrateSucceeds_RenamingTagsToLabels(t *testing.T) {
 	cfg := config.NewFromData(&config.Data{
-		Database: "sqlite://:memory:",
+		Database: "sqlite:///:memory:",
 	}, "")
 
 	db, err := New(cfg)
@@ -117,7 +117,7 @@ func Test_MigrateSucceeds_RenamingTagsToLabels(t *testing.T) {
 
 func Test_MigrateSucceeds_RemovesCredentialsColumns(t *testing.T) {
 	cfg := config.NewFromData(&config.Data{
-		Database: "sqlite://:memory:",
+		Database: "sqlite:///:memory:",
 	}, "")
 
 	db, err := New(cfg)

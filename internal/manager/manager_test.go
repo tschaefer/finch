@@ -35,7 +35,7 @@ func createConfigFile(t *testing.T, data any) string {
 func Test_NewReturnsManager(t *testing.T) {
 	data := config.Data{
 		CreatedAt: "2025-01-01T00:00:00Z",
-		Database:  "sqlite://:memory:",
+		Database:  "sqlite:///:memory:",
 		Hostname:  "finch.example.com",
 		Id:        "8d134b24c2541730",
 		Secret:    "C7LVMO6YY0ZfZvlEayQJR0zOE7JF8g+nrYgrcvetIbU=",
@@ -77,7 +77,7 @@ func Test_NewReturnsError_InvalidDatabaseURL(t *testing.T) {
 func Test_RunSucceeds(t *testing.T) {
 	data := config.Data{
 		CreatedAt: "2025-01-01T00:00:00Z",
-		Database:  "sqlite://:memory:",
+		Database:  "sqlite:///:memory:",
 		Hostname:  "finch.example.com",
 		Id:        "8d134b24c2541730",
 		Secret:    "C7LVMO6YY0ZfZvlEayQJR0zOE7JF8g+nrYgrcvetIbU=",

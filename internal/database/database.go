@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -45,10 +46,14 @@ func New(config *config.Config) (*Database, error) {
 
 		if uri.Path != "" {
 			path = uri.Path
-		} else if uri.Host == ":memory:" {
-			path = uri.Host
 		} else {
 			path = fmt.Sprintf("%s/%s", config.Library(), uri.Host)
+		}
+
+		fmt.Printf("Using SQLite database at path: %s\n", path)
+
+		if strings.HasSuffix(path, ":memory:") {
+			path = ":memory:"
 		}
 
 		connection, err = gorm.Open(sqlite.Open(path), dbcfg)
