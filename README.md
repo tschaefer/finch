@@ -1,4 +1,9 @@
-# The Minimal Observability Infrastructure 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".brand/finch-logo-horizontal-dark.svg">
+  <img src=".brand/finch-logo-horizontal.svg" alt="Finch - The Minimal Observability Infrastructure" width="300">
+</picture>
+
+# The Minimal Observability Infrastructure
 
 [![Tag](https://img.shields.io/github/tag/tschaefer/finch.svg)](https://github.com/tschaefer/finch/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tschaefer/finch)](https://goreportcard.com/report/github.com/tschaefer/finch)
