@@ -26,8 +26,8 @@ This directory contains official branding assets for Finch.
 
 ```html
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="brand/finch-logo-horizontal-dark.svg">
-  <img src="brand/finch-logo-horizontal.svg" alt="Finch - The Minimal Observability Infrastructure" width="300">
+  <source media="(prefers-color-scheme: dark)" srcset=".brand/finch-logo-horizontal-dark.svg">
+  <img src=".brand/finch-logo-horizontal.svg" alt="Finch - The Minimal Observability Infrastructure" width="300">
 </picture>
 ```
 

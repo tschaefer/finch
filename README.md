@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="brand/finch-logo-horizontal-dark.svg">
-  <img src="brand/finch-logo-horizontal.svg" alt="Finch - The Minimal Observability Infrastructure" width="300">
+  <source media="(prefers-color-scheme: dark)" srcset=".brand/finch-logo-horizontal-dark.svg">
+  <img src=".brand/finch-logo-horizontal.svg" alt="Finch - The Minimal Observability Infrastructure" width="300">
 </picture>
 
 # The Minimal Observability Infrastructure
