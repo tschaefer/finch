@@ -5,6 +5,8 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package database
 
 import (
+	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -144,4 +146,40 @@ func Test_MigrateSucceeds_RemovesCredentialsColumns(t *testing.T) {
 		has := db.Connection().Migrator().HasColumn(&model.Agent{}, column)
 		assert.False(t, has, "column '"+column+"' should be removed by second migration")
 	}
+}
+
+func Test_PingSucceeds(t *testing.T) {
+	cfg := config.NewFromData(&config.Data{
+		Database: "sqlite:///:memory:",
+	}, "")
+
+	db, err := New(cfg)
+	assert.NoError(t, err, "new database instance")
+
+	err = db.Migrate()
+	assert.NoError(t, err, "migrate database")
+
+	err = db.Ping(context.Background())
+	assert.NoError(t, err, "ping database")
+}
+
+func Test_PingReturnsError_WritePermissionDenied(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "testdb-*.db")
+	assert.NoError(t, err, "create temporary file")
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	cfg := config.NewFromData(&config.Data{
+		Database: "sqlite:///" + tmpFile.Name(),
+	}, "")
+
+	db, err := New(cfg)
+	assert.NoError(t, err, "new database instance")
+
+	err = os.Chmod(tmpFile.Name(), 0400)
+	assert.NoError(t, err, "change file permissions")
+
+	err = db.Ping(context.Background())
+	assert.Error(t, err, "ping database with read-only permissions")
 }

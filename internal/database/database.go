@@ -5,6 +5,7 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package database
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -50,8 +51,6 @@ func New(config *config.Config) (*Database, error) {
 			path = fmt.Sprintf("%s/%s", config.Library(), uri.Host)
 		}
 
-		fmt.Printf("Using SQLite database at path: %s\n", path)
-
 		if strings.HasSuffix(path, ":memory:") {
 			path = ":memory:"
 		}
@@ -75,6 +74,29 @@ func (d *Database) Connection() *gorm.DB {
 	slog.Debug("Retrieving database connection")
 
 	return d.connection
+}
+
+func (d *Database) Ping(ctx context.Context) error {
+	sqlDB, err := d.connection.DB()
+	if err != nil {
+		return err
+	}
+
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return err
+	}
+
+	tx := d.connection.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	if err := tx.Exec("UPDATE agents SET resource_id=resource_id WHERE 1=0").Error; err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	return tx.Rollback().Error
 }
 
 func (d *Database) Migrate() error {

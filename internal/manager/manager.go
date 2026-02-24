@@ -6,6 +6,7 @@ package manager
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/tschaefer/finch/internal/controller"
 	"github.com/tschaefer/finch/internal/database"
 	grpcserver "github.com/tschaefer/finch/internal/grpc"
+	healthzserver "github.com/tschaefer/finch/internal/healthz"
 	httpserver "github.com/tschaefer/finch/internal/http"
 	"github.com/tschaefer/finch/internal/model"
 	"github.com/tschaefer/finch/internal/profiler"
@@ -31,6 +33,13 @@ type Manager struct {
 	model      *model.Model
 	controller *controller.Controller
 	profiler   *profiler.Profiler
+}
+
+type Addresses struct {
+	GRPC    string
+	HTTP    string
+	Auth    string
+	Healthz string
 }
 
 func New(cfgFile string) (*Manager, error) {
@@ -67,32 +76,39 @@ func New(cfgFile string) (*Manager, error) {
 	}, nil
 }
 
-func (m *Manager) Run(ctx context.Context, grpcAddr string, httpAddr string, authAddr string) {
-	slog.Debug("Running Manager", "grpcAddr", grpcAddr, "httpAddr", httpAddr, "authAddr", authAddr)
+func (m *Manager) Run(ctx context.Context, addrs Addresses) {
+	slog.Debug("Running Manager", "addrs", fmt.Sprintf("%+v", addrs))
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	slog.Info("Starting Finch management server", "release", version.Release(), "commit", version.Commit())
-	slog.Info("Listening on " + grpcAddr + " (gRPC)")
-	slog.Info("Listening on " + httpAddr + " (HTTP)")
-	slog.Info("Listening on " + authAddr + " (Auth)")
+	slog.Info("Listening on " + addrs.GRPC + " (gRPC)")
+	slog.Info("Listening on " + addrs.HTTP + " (HTTP)")
+	slog.Info("Listening on " + addrs.Auth + " (Auth)")
+	slog.Info("Listening on " + addrs.Healthz + " (Healthz)")
 
-	grpcServer, err := m.runGRPCServer(grpcAddr)
+	grpcServer, err := m.runGRPCServer(addrs.GRPC)
 	if err != nil {
 		slog.Error("Failed to start gRPC server", "error", err)
 		os.Exit(1)
 	}
 
-	httpServer, err := m.runHTTPServer(httpAddr)
+	httpServer, err := m.runHTTPServer(addrs.HTTP)
 	if err != nil {
 		slog.Error("Failed to start HTTP server", "error", err)
 		os.Exit(1)
 	}
 
-	authServer, err := m.runAuthServer(authAddr)
+	authServer, err := m.runAuthServer(addrs.Auth)
 	if err != nil {
 		slog.Error("Failed to start Auth server", "error", err)
+		os.Exit(1)
+	}
+
+	healthzServer, err := m.runHealthzServer(addrs.Healthz)
+	if err != nil {
+		slog.Error("Failed to start healthz server", "error", err)
 		os.Exit(1)
 	}
 
@@ -104,6 +120,10 @@ func (m *Manager) Run(ctx context.Context, grpcAddr string, httpAddr string, aut
 
 	if err := authServer.Stop(shutdownCtx); err != nil {
 		slog.Error("Auth server shutdown error", "error", err)
+	}
+
+	if err := healthzServer.Stop(shutdownCtx); err != nil {
+		slog.Error("healthz server shutdown error", "error", err)
 	}
 
 	if err := httpServer.Stop(shutdownCtx); err != nil {
@@ -167,4 +187,12 @@ func (m *Manager) runAuthServer(authAddr string) (*auth.Server, error) {
 		return nil, err
 	}
 	return authServer, nil
+}
+
+func (m *Manager) runHealthzServer(healthzAddr string) (*healthzserver.Server, error) {
+	healthzServer := healthzserver.NewServer(healthzAddr, m.database)
+	if err := healthzServer.Start(); err != nil {
+		return nil, err
+	}
+	return healthzServer, nil
 }
