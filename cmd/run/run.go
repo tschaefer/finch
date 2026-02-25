@@ -23,6 +23,7 @@ func init() {
 	Cmd.Flags().StringP("server.grpc-address", "", "127.0.0.1:3000", "Address to listen on for gRPC traffic")
 	Cmd.Flags().StringP("server.http-address", "", "127.0.0.1:3001", "Address to listen on for HTTP traffic")
 	Cmd.Flags().StringP("server.auth-address", "", "127.0.0.1:3002", "Address to listen on for auth traffic")
+	Cmd.Flags().StringP("server.healthz-address", "", "127.0.0.1:3003", "Address to listen on for healthz traffic")
 	Cmd.Flags().StringP("server.log-level", "", "info", "Log level (debug, info, warn, error)")
 	Cmd.Flags().StringP("server.log-format", "", "structured", "Log format (structured, json)")
 	Cmd.Flags().StringP("stack.config-file", "", "/var/lib/finch/finch.json", "Config file of the stack")
@@ -35,17 +36,23 @@ func runCmd(cmd *cobra.Command, args []string) {
 	grpcAddr, _ := cmd.Flags().GetString("server.grpc-address")
 	httpAddr, _ := cmd.Flags().GetString("server.http-address")
 	authAddr, _ := cmd.Flags().GetString("server.auth-address")
+	healthzAddr, _ := cmd.Flags().GetString("server.healthz-address")
 	config, _ := cmd.Flags().GetString("stack.config-file")
 	logLevel, _ := cmd.Flags().GetString("server.log-level")
 	logFormat, _ := cmd.Flags().GetString("server.log-format")
 
 	setLogger(logLevel, logFormat)
 
-	manager, err := manager.New(config)
+	mgr, err := manager.New(config)
 	cobra.CheckErr(err)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	manager.Run(ctx, grpcAddr, httpAddr, authAddr)
+	mgr.Run(ctx, manager.Addresses{
+		GRPC:    grpcAddr,
+		HTTP:    httpAddr,
+		Auth:    authAddr,
+		Healthz: healthzAddr,
+	})
 }

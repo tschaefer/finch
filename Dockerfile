@@ -36,5 +36,6 @@ CMD [ \
     "--server.grpc-address", "0.0.0.0:3000", \
     "--server.http-address", "0.0.0.0:3001", \
     "--server.auth-address", "0.0.0.0:3002", \
+    "--server.healthz-address", "0.0.0.0:3003", \
     "--stack.config-file", "/var/lib/finch/finch.json" \
 ]

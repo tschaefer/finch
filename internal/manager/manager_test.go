@@ -106,7 +106,17 @@ func Test_RunSucceeds(t *testing.T) {
 	authAddr := authListener.Addr().String()
 	_ = authListener.Close()
 
-	go m.Run(ctx, grpcAddr, httpAddr, authAddr)
+	healthzListener, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err, "allocate healthz port")
+	healthzAddr := healthzListener.Addr().String()
+	_ = healthzListener.Close()
+
+	go m.Run(ctx, Addresses{
+		GRPC:    grpcAddr,
+		HTTP:    httpAddr,
+		Auth:    authAddr,
+		Healthz: healthzAddr,
+	})
 
 	var conn net.Conn
 	for range 50 {
