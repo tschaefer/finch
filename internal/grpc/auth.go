@@ -17,6 +17,7 @@ import (
 
 	"github.com/tschaefer/finch/internal/config"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -56,13 +57,13 @@ func (a *AuthInterceptor) authenticate(ctx context.Context) error {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		slog.Warn("no metadata in context")
-		return status.Error(418, "I'm a teapot")
+		return status.Error(codes.InvalidArgument, "no metadata in context")
 	}
 
 	values := md.Get(AuthHeader)
 	if len(values) == 0 {
 		slog.Warn("no client certificate in metadata")
-		return status.Error(418, "I'm a teapot")
+		return status.Error(codes.Unauthenticated, "permission denied")
 	}
 
 	certPem := fmt.Sprintf("%s%s%s", PEMHeader, values[0], PEMFooter)
@@ -72,12 +73,12 @@ func (a *AuthInterceptor) authenticate(ctx context.Context) error {
 	caFiles, err := filepath.Glob(pattern)
 	if err != nil {
 		slog.Error("failed to list CA certificates with glob pattern", "pattern", pattern, "error", err)
-		return status.Error(418, "I'm a teapot")
+		return status.Error(codes.Internal, "internal server error")
 	}
 
 	if len(caFiles) == 0 {
 		slog.Error("no CA certificates found in directory", "directory", caDirPath)
-		return status.Error(418, "I'm a teapot")
+		return status.Error(codes.Internal, "internal server error")
 	}
 
 	for _, caFile := range caFiles {
@@ -97,7 +98,7 @@ func (a *AuthInterceptor) authenticate(ctx context.Context) error {
 	}
 
 	slog.Warn("client certificate is not valid")
-	return status.Error(418, "I'm a teapot")
+	return status.Error(codes.Unauthenticated, "permission denied")
 }
 
 func (a *AuthInterceptor) parseCertFromPEM(bytes []byte) (*x509.Certificate, error) {

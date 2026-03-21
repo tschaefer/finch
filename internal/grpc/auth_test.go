@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/tschaefer/finch/internal/config"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -121,7 +122,7 @@ func TestAuthInterceptorReturnsError_MissingMetadata(t *testing.T) {
 	assert.Error(t, err)
 	st, ok := status.FromError(err)
 	assert.True(t, ok)
-	assert.Equal(t, "Code(418)", st.Code().String())
+	assert.Equal(t, codes.InvalidArgument, st.Code())
 	assert.False(t, handlerCalled, "handler must not be called on auth failure")
 }
 
@@ -148,7 +149,7 @@ func TestAuthInterceptorReturnsError_InvalidCert(t *testing.T) {
 	assert.Error(t, err)
 	st, ok := status.FromError(err)
 	assert.True(t, ok)
-	assert.Equal(t, "Code(418)", st.Code().String())
+	assert.Equal(t, codes.Unauthenticated, st.Code())
 	assert.False(t, handlerCalled, "handler must not be called on auth failure")
 }
 
@@ -214,6 +215,6 @@ func TestAuthInterceptorReturnsError_EmptyCADirectory(t *testing.T) {
 	assert.Error(t, err)
 	st, ok := status.FromError(err)
 	assert.True(t, ok)
-	assert.Equal(t, "Code(418)", st.Code().String())
+	assert.Equal(t, codes.Internal, st.Code())
 	assert.False(t, handlerCalled, "handler must not be called on auth failure")
 }
