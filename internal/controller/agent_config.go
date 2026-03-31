@@ -23,10 +23,6 @@ loki.write "default" {
 
 		// Token expires: {{ .TokenExpiry }}
 		bearer_token = "{{ .Token }}"
-
-		tls_config {
-			insecure_skip_verify = true
-		}
 	}
 	external_labels = {
 		"host" = "{{ .Hostname }}",
