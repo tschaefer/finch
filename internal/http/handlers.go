@@ -26,14 +26,6 @@ var templateFiles embed.FS
 
 var templates *template.Template
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
 type WSMessage struct {
 	Type string          `json:"type"`
 	Data json.RawMessage `json:"data,omitempty"`
@@ -202,7 +194,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		claims = &controller.DashboardClaims{Role: controller.RoleViewer, Scope: []string{}}
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := s.ws.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error("Failed to upgrade WebSocket", "error", err)
 		return

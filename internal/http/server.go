@@ -9,7 +9,10 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/tschaefer/finch/internal/config"
 	"github.com/tschaefer/finch/internal/controller"
@@ -18,6 +21,7 @@ import (
 type Server struct {
 	controller *controller.Controller
 	config     *config.Config
+	ws         *websocket.Upgrader
 	server     *http.Server
 }
 
@@ -35,6 +39,26 @@ func NewServer(addr string, ctrl *controller.Controller, cfg *config.Config) *Se
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  60 * time.Second,
+		},
+	}
+
+	s.ws = &websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				slog.Error("WebSocket connection missing Origin header")
+				return false
+			}
+
+			uri, err := url.Parse(origin)
+			if err != nil {
+				slog.Error("Invalid WebSocket Origin header", "origin", origin, "error", err)
+				return false
+			}
+
+			return uri.Hostname() == s.config.Hostname()
 		},
 	}
 

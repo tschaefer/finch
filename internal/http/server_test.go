@@ -20,7 +20,7 @@ import (
 
 var testCfg = config.NewFromData(&config.Data{
 	Id:        "test-id",
-	Hostname:  "localhost",
+	Hostname:  "127.0.0.1",
 	CreatedAt: "2025-01-01T00:00:00Z",
 	Database:  "sqlite:///:memory:",
 	Secret:    "gpFb8WTh5iELimbX3YfuvRYRh2Z2PHa8Lmoog0a25QQ=",

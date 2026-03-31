@@ -16,6 +16,14 @@ import (
 	"github.com/tschaefer/finch/internal/controller"
 )
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
 func TestHandleDashboardRendersTemplate(t *testing.T) {
 	ctrl := newTestController(t)
 	server := NewServer("127.0.0.1:0", ctrl, testCfg)
@@ -65,6 +73,7 @@ func TestHandleWebSocketUpgrade(t *testing.T) {
 
 	headers := http.Header{}
 	headers.Add("Cookie", "dashboard_token="+resp.Token)
+	headers.Add("Origin", "http://"+testServer.Listener.Addr().String())
 
 	ws, _, err := websocket.DefaultDialer.Dial(wsURL, headers)
 	assert.NoError(t, err)
