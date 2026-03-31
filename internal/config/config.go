@@ -21,7 +21,6 @@ type Data struct {
 	Hostname  string `json:"hostname"`
 	Id        string `json:"id"`
 	Secret    string `json:"secret"`
-	Version   string `json:"version"`
 }
 
 type Config struct {
@@ -73,10 +72,6 @@ func NewFromData(data *Data, library string) *Config {
 	}
 }
 
-func (c *Config) Version() string {
-	return c.data.Version
-}
-
 func (c *Config) Hostname() string {
 	return c.data.Hostname
 }
@@ -112,7 +107,6 @@ func valid(data *Data) error {
 		"Hostname",
 		"Id",
 		"Secret",
-		"Version",
 	}
 	object := reflect.ValueOf(*data)
 	for _, field := range fields {

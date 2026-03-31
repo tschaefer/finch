@@ -35,7 +35,7 @@ func Test_ReadReturnsError_InvalidJSON(t *testing.T) {
 }
 
 func Test_ReadReturnsError_MissingField(t *testing.T) {
-	_, err := NewFromString(`{"version": "1.0", "hostname": "localhost"}`, "")
+	_, err := NewFromString(`{"hostname": "localhost"}`, "")
 	assert.Error(t, err, "read config string")
 
 	wanted := "invalid configuration data, missing field: CreatedAt"
@@ -49,7 +49,6 @@ func Test_ReadReturnsConfig(t *testing.T) {
 		"hostname": "localhost",
 		"id": "12345",
 		"secret": "secret",
-		"version": "1.0",
 		"credentials": {
 			"username": "user",
 			"password": "pass"
@@ -57,7 +56,6 @@ func Test_ReadReturnsConfig(t *testing.T) {
 	}`, "")
 	assert.NoError(t, err, "read config string")
 
-	assert.Equal(t, "1.0", cfg.Version(), "version")
 	assert.Equal(t, "localhost", cfg.Hostname(), "hostname")
 	assert.Equal(t, "testdb", cfg.Database(), "database")
 	assert.Equal(t, "12345", cfg.Id(), "id")
