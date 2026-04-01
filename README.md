@@ -36,7 +36,8 @@ Finch provides a gRPC API with three services:
 - **InfoService** – Provides service information
 - **DashboardService** – Configures dashboard authentication
 
-The API is protected by mTLS authentication; certificates and keys are provided during stack deployment.
+The API is protected by mTLS authentication; certificates and keys are provided
+during stack deployment.
 
 For the API reference, see the [proto definitions](https://github.com/tschaefer/finch/tree/main/api/proto).
 
@@ -62,13 +63,15 @@ updates.
 
 ### Using finchctl (Official CLI)
 
-The **official** way to interact with Finch is via **[finchctl](https://github.com/tschaefer/finchctl)**, a dedicated command-line interface that handles mTLS authentication automatically.
+The **official** way to interact with Finch is via [finchctl](https://github.com/tschaefer/finchctl),
+a dedicated command-line interface that handles mTLS authentication automatically.
 
 **Install finchctl:**
+
 ```bash
-# See installation instructions at:
-# https://github.com/tschaefer/finchctl#installation
+curl -sSLf https://finch.coresec.zone | sudo sh -
 ```
+
 ## Contributing
 
 Fork, make changes, submit PR. For major changes, open an issue first.
