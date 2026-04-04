@@ -5,76 +5,91 @@
 
 # The Minimal Observability Infrastructure
 
-[![Tag](https://img.shields.io/github/tag/tschaefer/finch.svg)](https://github.com/tschaefer/finch/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/tschaefer/finch)](https://goreportcard.com/report/github.com/tschaefer/finch)
-[![Coverage](https://img.shields.io/codecov/c/github/tschaefer/finch)](https://codecov.io/gh/tschaefer/finch)
-[![Contributors](https://img.shields.io/github/contributors/tschaefer/finch)](https://github.com/tschaefer/finch/graphs/contributors)
-[![License](https://img.shields.io/github/license/tschaefer/finch)](./LICENSE)
+[![Tag](https://img.shields.io/github/tag/tschaefer/finchctl.svg)](https://github.com/tschaefer/finchctl/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tschaefer/finchctl)](https://goreportcard.com/report/github.com/tschaefer/finchctl)
+[![Contributors](https://img.shields.io/github/contributors/tschaefer/finchctl)](https://github.com/tschaefer/finchctl/graphs/contributors)
+[![License](https://img.shields.io/github/license/tschaefer/finchctl)](./LICENSE)
 
-**Finch** is the management service for registering observability agents and
-providing related configuration. It is designed to be minimal and easy to use.
+Finch brings production-grade observability to your infrastructure — no
+Kubernetes, no cloud vendor, no expertise required. Deploy a full logs,
+metrics, and profiling stack in one command. Enroll agents on any Linux or
+macOS machine in one more. Everything else — TLS, authentication, agent
+configuration — is handled for you.
 
-The minimal observability stack is based on Docker and consists of the
-following services:
+> Background, motivation, and a walkthrough: [Blog post](https://blog.tschaefer.org/posts/2025/08/17/finch-a-minimal-logging-stack/)
+> Technical documentation: [Finch Docs](https://tschaefer.github.io/finch-docs/)
 
-- **Grafana** – Visualization and dashboards
-- **Loki** – Log aggregation system
-- **Mimir** – Metrics backend
-- **Pyroscope** – Profiling data aggregation and visualization
-- **Alloy** – Client-side agent for logs, metrics, and profiling data
-- **Traefik** – Reverse proxy and TLS termination
-- **Finch** – Agent manager
+## Getting Started
 
-See the [Blog post](https://blog.tschaefer.org/posts/2025/08/17/finch-a-minimal-logging-stack/)
-for background, motivation, and a walkthrough before you get started.
-
-## gRPC API
-
-Finch provides a gRPC API with three services:
-
-- **AgentService** – Manages observability agents
-- **InfoService** – Provides service information
-- **DashboardService** – Configures dashboard authentication
-
-The API is protected by mTLS authentication; certificates and keys are provided
-during stack deployment.
-
-For the API reference, see the [proto definitions](https://github.com/tschaefer/finch/tree/main/api/proto).
-
-### Agent Authentication
-
-Registered agents authenticate using JWT tokens with a **365-day expiration**.
-Tokens are generated during agent registration and must be rotated before
-expiry. The expiration date is displayed in the dashboard and included as a
-comment in generated Alloy configurations. The regeneration happens with any
-config request.
-
-## Web Dashboard
-
-Finch provides a lightweight dashboard for visualizing agents with real-time
-updates.
-
-**Features:**
-- Real-time agent updates
-- Service information, statistics, and endpoints
-- Agent details (logs, metrics, profiles, labels)
-- Download configs, reveal credentials, search/filter
-- Dark theme
-
-### Using finchctl (Official CLI)
-
-The **official** way to interact with Finch is via [finchctl](https://github.com/tschaefer/finchctl),
-a dedicated command-line interface that handles mTLS authentication automatically.
-
-**Install finchctl:**
+Install the Finch CLI:
 
 ```bash
-curl -sSLf https://finch.coresec.zone | sudo sh -
+curl -sSfL https://finch.coresec.zone | sudo sh -
 ```
+
+Alternatively, download a binary from the
+[releases page](https://github.com/tschaefer/finchctl/releases) or build from
+source.
+
+## Deploy the Stack
+
+You need a Linux machine with SSH access and superuser privileges.
+
+```bash
+finchctl service deploy root@10.19.80.100
+```
+
+That's it. The full observability stack is up at `https://10.19.80.100`.
+Open `/grafana` in your browser — user `admin`, password `admin`.
+Your local mTLS credentials are saved automatically to `~/.config/finch.json`.
+
+> Need Let's Encrypt or a custom certificate? See
+[TLS options](https://tschaefer.github.io/finch-docs/deployment/tls-options/).
+
+## Enroll an Agent
+
+Register a new agent with the Finch service and deploy it to a target machine:
+
+```bash
+finchctl agent register \
+    --agent.hostname sparrow \
+    --agent.logs.journal \
+    10.19.80.100
+```
+
+The agent config is saved as `finch-agent.cfg` and contains all endpoints and
+credentials.
+
+```bash
+finchctl agent deploy --agent.config finch-agent.cfg root@172.17.0.4
+```
+
+Alloy is installed and started on the target machine automatically.
+
+> Want to collect Docker logs, log files, metrics, or profiles? See
+[Agent options](https://tschaefer.github.io/finch-docs/agent/options/).
+
+## Open the Dashboard
+
+```bash
+finchctl service dashboard --web --permission.session-timeout 1800 10.19.80.100
+```
+
+The dashboard opens in your browser with a fresh session token.
+
+## What's Next
+
+- [TLS options](https://tschaefer.github.io/finch-docs/deployment/tls-options/) - Let's Encrypt, custom certificates
+- [Agent options](https://tschaefer.github.io/finch-docs/agent/options/) - Docker logs, file logs, metrics, profiles, labels
+- [Managing agents](https://tschaefer.github.io/finch-docs/agent/manage/) - list, describe, edit, deregister
+- [Token renewal](https://tschaefer.github.io/finch-docs/agent/token-renewal/) - refreshing agent credentials before expiry
+- [Security model](https://tschaefer.github.io/finch-docs/security/) - how Finch handles auth, rotation, and recovery
+- [Windows agents](https://tschaefer.github.io/finch-docs/agent/windows/) - enrolling agents on Windows
 
 ## Contributing
 
-Fork, make changes, submit PR. For major changes, open an issue first.
+Fork the repository and submit a pull request. For major changes, open an issue
+first to discuss your proposal.
 
 ## License
 
