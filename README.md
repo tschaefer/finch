@@ -17,7 +17,6 @@ macOS machine in one more. Everything else — TLS, authentication, agent
 configuration — is handled for you.
 
 > Background, motivation, and a walkthrough: [Blog post](https://blog.tschaefer.org/posts/2025/08/17/finch-a-minimal-logging-stack/)
-> Technical documentation: [Finch Docs](https://tschaefer.github.io/finch-docs/)
 
 ## Getting Started
 
