@@ -7,6 +7,8 @@ package controller
 import (
 	"fmt"
 	"net/url"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/tschaefer/finch/internal/model"
@@ -23,6 +25,11 @@ loki.write "default" {
 
 		// Token expires: {{ .TokenExpiry }}
 		bearer_token = "{{ .Token }}"
+{{ if .InsecureSkipVerify }}
+		tls_config {
+			insecure_skip_verify = true
+		}
+{{- end }}
 	}
 	external_labels = {
 		"host" = "{{ .Hostname }}",
@@ -142,10 +149,11 @@ prometheus.remote_write "default" {
 
 		// Token expires: {{ .TokenExpiry }}
 		bearer_token = "{{ .Token }}"
-
+{{ if .InsecureSkipVerify }}
 		tls_config {
 			insecure_skip_verify = true
 		}
+{{- end }}
 	}
 	external_labels = {
 		"host" = "{{ .Hostname }}",
@@ -219,10 +227,11 @@ pyroscope.write "backend" {
 
 		// Token expires: {{ .TokenExpiry }}
 		bearer_token = "{{ .Token }}"
-
+{{ if .InsecureSkipVerify }}
 		tls_config {
 			insecure_skip_verify = true
 		}
+{{- end }}
 	}
 	external_labels = {
 		"host" = "{{ .Hostname }}",
@@ -236,13 +245,14 @@ pyroscope.write "backend" {
 `
 
 type alloyConfigData struct {
-	ServiceName string
-	Hostname    string
-	Node        string
-	Token       string
-	TokenExpiry string
-	ResourceId  string
-	LogSources  struct {
+	ServiceName        string
+	Hostname           string
+	Node               string
+	Token              string
+	TokenExpiry        string
+	ResourceId         string
+	InsecureSkipVerify bool
+	LogSources         struct {
 		Journal bool
 		Docker  bool
 		Files   []string
@@ -274,12 +284,13 @@ func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, 
 	}
 
 	data := &alloyConfigData{
-		Hostname:    agent.Hostname,
-		Node:        agent.Node,
-		ServiceName: c.config.Hostname(),
-		Token:       token,
-		TokenExpiry: expiresAt.Format("2006-01-02 15:04:05 MST"),
-		ResourceId:  agent.ResourceId,
+		Hostname:           agent.Hostname,
+		Node:               agent.Node,
+		ServiceName:        c.config.Hostname(),
+		Token:              token,
+		TokenExpiry:        expiresAt.Format("2006-01-02 15:04:05 MST"),
+		ResourceId:         agent.ResourceId,
+		InsecureSkipVerify: true,
 		LogSources: struct {
 			Journal bool
 			Docker  bool
@@ -335,6 +346,15 @@ func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, 
 			MetricsPath: uri.Path,
 		}
 		data.MetricsTargets = append(data.MetricsTargets, entry)
+	}
+
+	certDir := path.Join(c.config.Library(), "traefik", "etc", "certs.d")
+	certFiles := []string{"acme.json", "cert.pem", "key.pem"}
+	for _, certFile := range certFiles {
+		if _, err := os.Stat(path.Join(certDir, certFile)); err == nil {
+			data.InsecureSkipVerify = false
+			break
+		}
 	}
 
 	return data, nil
