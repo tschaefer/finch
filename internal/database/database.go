@@ -55,7 +55,15 @@ func New(config *config.Config) (*Database, error) {
 			path = ":memory:"
 		}
 
+		if path != ":memory:" {
+			path += "?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL"
+		}
 		connection, err = gorm.Open(sqlite.Open(path), dbcfg)
+		if err == nil {
+			if sqlDB, dbErr := connection.DB(); dbErr == nil {
+				sqlDB.SetMaxOpenConns(1)
+			}
+		}
 	case "postgres", "postgresql":
 		connection, err = gorm.Open(postgres.Open(uri.String()), dbcfg)
 	default:
