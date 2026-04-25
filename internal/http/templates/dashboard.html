@@ -750,18 +750,17 @@
             attachAgentEventListeners();
             restoreTokens();
             break;
-          case 'token':
-            const containers = document.querySelectorAll('.token-container');
-            containers.forEach(container => {
-              if (msg.html.includes(container.dataset.rid)) {
-                container.innerHTML = msg.html;
-                const button = document.querySelector(`[data-action="show-token"][data-rid="${container.dataset.rid}"]`);
-                if (button) {
-                  setLockIcon(button, true);
-                }
+          case 'token': {
+            const container = document.querySelector(`.token-container[data-rid="${msg.rid}"]`);
+            if (container) {
+              container.innerHTML = msg.html;
+              const button = document.querySelector(`[data-action="show-token"][data-rid="${msg.rid}"]`);
+              if (button) {
+                setLockIcon(button, true);
               }
-            });
+            }
             break;
+          }
           case 'config':
             const blob = new Blob([msg.content], { type: 'text/plain' });
             const url = window.URL.createObjectURL(blob);

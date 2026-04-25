@@ -34,6 +34,7 @@ type WSMessage struct {
 type WSResponse struct {
 	Type string `json:"type"`
 	HTML string `json:"html"`
+	RID  string `json:"rid,omitempty"`
 }
 
 func init() {
@@ -487,6 +488,7 @@ func (s *Server) sendToken(conn *websocket.Conn, rid string, claims *controller.
 	response := WSResponse{
 		Type: "token",
 		HTML: buf.String(),
+		RID:  rid,
 	}
 	conn.WriteJSON(response)
 }
