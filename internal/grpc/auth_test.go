@@ -6,11 +6,19 @@ package grpc
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tschaefer/finch/internal/config"
@@ -20,49 +28,76 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	TestCA = `-----BEGIN CERTIFICATE-----
-MIIBtjCCAVugAwIBAgIRAMDZb0jTSAU/EaHYww5oUecwCgYIKoZIzj0EAwIwOjEO
-MAwGA1UEChMFRmluY2gxKDAmBgNVBAMTH0ZpbmNoIENBIC0gZmluY2gudC5jb3Jl
-c2VjLnpvbmUwHhcNMjYwMTE5MTQyMzI0WhcNMjYwNDE5MTQyMzI0WjA6MQ4wDAYD
-VQQKEwVGaW5jaDEoMCYGA1UEAxMfRmluY2ggQ0EgLSBmaW5jaC50LmNvcmVzZWMu
-em9uZTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABPDdUu9IQQponAiYg5A+tvvV
-bFi4uIQpZmJ4AHLy712wKSf8+okDPPya55c0Kjy2VNiE5oARH3x7ltitIZnXDiej
-QjBAMA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQ5
-GDc2QmnrfRD32xYGHwwNlZ3sXDAKBggqhkjOPQQDAgNJADBGAiEA3HiFDzExl8Bk
-uIsJUwo3c/2BgAoK78gVjsFMXLEhirUCIQDXXb/WhMeZROt+ZfEWFQgQU/ikjAPo
-gjI5V+hs6TQSgQ==
------END CERTIFICATE-----`
-	TestCert = `
-MIIBvzCCAWWgAwIBAgIRAKSS5NAflDBIU+OmV3iiy5EwCgYIKo
-ZIzj0EAwIwOjEOMAwGA1UEChMFRmluY2gxKDAmBgNVBAMTH0ZpbmNoIENBIC0gZmluY2gudC
-5jb3Jlc2VjLnpvbmUwHhcNMjYwMTE5MTQyMzI0WhcNMjYwNDE5MTQyMzI0WjA+MQ4wDAYDVQ
-QKEwVGaW5jaDEsMCoGA1UEAxMjRmluY2ggQ2xpZW50IC0gZmluY2gudC5jb3Jlc2VjLnpvbm
-UwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASN6FdhaAQhAcLi4J7PeMzSQyndbaJJ8itOdT
-x6DYT4uBZXe8rb6Gn4Vz/q49zZXyMQaanoMJij3+OhpXWIiviQo0gwRjAOBgNVHQ8BAf8EBA
-MCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwIwHwYDVR0jBBgwFoAUORg3NkJp630Q99sWBh8MDZ
-Wd7FwwCgYIKoZIzj0EAwIDSAAwRQIgE+Ewhuzh7Srikx7H9N9Qlu/U1OG5WYNWPy6OFkQPGQ
-sCIQCn8o4SVaHuxhCpZIdu7uRz7hdZyxRyHxoHZIWKvWKa6g==
-`
-	TestInvalidCert = `
-MIICkzCCAjmgAwIBAgIUf1frg4J/1f3Ad4lsPgmpuMzguoUwCgYIKoZIzj0EAwIw
-gZ4xCzAJBgNVBAYTAkRFMQ8wDQYDVQQIDAZCYXllcm4xEzARBgNVBAcMCk3Dg8K8
-bmNoZW4xEDAOBgNVBAoMB1ByaXZhdGUxEDAOBgNVBAsMB1ByaXZhdGUxKDAmBgNV
-BAMMH0FsbCBZb3VyIENlcnRzIEFyZSBCZWxvbmcgVG8gVXMxGzAZBgkqhkiG9w0B
-CQEWDHRsc0BhY21lLmNvbTAeFw0yNjAxMjAxODM3NDRaFw0yNzAxMjAxODM3NDRa
-MIGeMQswCQYDVQQGEwJERTEPMA0GA1UECAwGQmF5ZXJuMRMwEQYDVQQHDApNw4PC
-vG5jaGVuMRAwDgYDVQQKDAdQcml2YXRlMRAwDgYDVQQLDAdQcml2YXRlMSgwJgYD
-VQQDDB9BbGwgWW91ciBDZXJ0cyBBcmUgQmVsb25nIFRvIFVzMRswGQYJKoZIhvcN
-AQkBFgx0bHNAYWNtZS5jb20wWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQheKac
-QUfK8+RWiyEVBYzFbACmy0c7uggs91lTBzH/F3MYCbXyWZCcf1PYt/0CgPRoApAY
-TvlNdnqi+A2cnjHIo1MwUTAdBgNVHQ4EFgQU4+3avq11eWPL8ymUB/LQQxzS7tgw
-HwYDVR0jBBgwFoAU4+3avq11eWPL8ymUB/LQQxzS7tgwDwYDVR0TAQH/BAUwAwEB
-/zAKBggqhkjOPQQDAgNIADBFAiEAsVkwAfe4TfUO0lS0V1ua3vgrjHOCsx488sn3
-tM1nHb4CIFN6LWw/Th/A3uxLQIlTpO8wQCEx5u3g4eQQm6vSq53W
-`
-)
+type testSetup struct {
+	library         string
+	clientCertBody  string
+	invalidCertBody string
+}
 
-func setup(t *testing.T) string {
+func generateCA(t *testing.T) (*ecdsa.PrivateKey, *x509.Certificate, []byte) {
+	t.Helper()
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("failed to generate CA key: %v", err)
+	}
+
+	tmpl := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{Organization: []string{"Finch"}, CommonName: "Finch Test CA"},
+		NotBefore:             time.Now().Add(-time.Minute),
+		NotAfter:              time.Now().Add(10 * 365 * 24 * time.Hour),
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("failed to create CA cert: %v", err)
+	}
+
+	cert, err := x509.ParseCertificate(derBytes)
+	if err != nil {
+		t.Fatalf("failed to parse CA cert: %v", err)
+	}
+
+	pemBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	return key, cert, pemBytes
+}
+
+func generateClientCert(t *testing.T, caCert *x509.Certificate, caKey *ecdsa.PrivateKey) string {
+	t.Helper()
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("failed to generate client key: %v", err)
+	}
+
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		Subject:      pkix.Name{Organization: []string{"Finch"}, CommonName: "Finch Test Client"},
+		NotBefore:    time.Now().Add(-time.Minute),
+		NotAfter:     time.Now().Add(10 * 365 * 24 * time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, tmpl, caCert, &key.PublicKey, caKey)
+	if err != nil {
+		t.Fatalf("failed to create client cert: %v", err)
+	}
+
+	pemBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	body := strings.TrimSpace(string(pemBytes))
+	body = strings.TrimPrefix(body, "-----BEGIN CERTIFICATE-----")
+	body = strings.TrimSuffix(body, "-----END CERTIFICATE-----")
+	return strings.TrimSpace(body)
+}
+
+func setup(t *testing.T) *testSetup {
+	t.Helper()
+
 	library, err := os.MkdirTemp("", "finch-test-lib-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
@@ -70,28 +105,41 @@ func setup(t *testing.T) string {
 
 	caDirPath := fmt.Sprintf(CADirPath, library)
 	if err := os.MkdirAll(caDirPath, 0700); err != nil {
+		_ = os.RemoveAll(library)
 		t.Fatalf("failed to create ca dir: %v", err)
 	}
 
-	cafile := filepath.Join(caDirPath, "rid:finchctl:47110815.pem")
-	if err := os.WriteFile(cafile, []byte(TestCA), 0600); err != nil {
+	caKey, caCert, caPEM := generateCA(t)
+
+	caFile := filepath.Join(caDirPath, "rid:finchctl:47110815.pem")
+	if err := os.WriteFile(caFile, caPEM, 0600); err != nil {
+		_ = os.RemoveAll(library)
 		t.Fatalf("failed to write ca pem: %v", err)
 	}
 
-	return library
+	clientCertBody := generateClientCert(t, caCert, caKey)
+
+	otherCAKey, otherCACert, _ := generateCA(t)
+	invalidCertBody := generateClientCert(t, otherCACert, otherCAKey)
+
+	return &testSetup{
+		library:         library,
+		clientCertBody:  clientCertBody,
+		invalidCertBody: invalidCertBody,
+	}
 }
 
 func TestAuthInterceptorSucceeds(t *testing.T) {
-	library := setup(t)
+	ts := setup(t)
 	defer func() {
-		_ = os.RemoveAll(library)
+		_ = os.RemoveAll(ts.library)
 	}()
 
-	cfg := config.NewFromData(&config.Data{}, library)
+	cfg := config.NewFromData(&config.Data{}, ts.library)
 	interceptor := NewAuthInterceptor(cfg)
 	unary := interceptor.Unary()
 
-	md := metadata.Pairs(AuthHeader, strings.TrimSpace(TestCert))
+	md := metadata.Pairs(AuthHeader, ts.clientCertBody)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	called := false
@@ -127,16 +175,16 @@ func TestAuthInterceptorReturnsError_MissingMetadata(t *testing.T) {
 }
 
 func TestAuthInterceptorReturnsError_InvalidCert(t *testing.T) {
-	library := setup(t)
+	ts := setup(t)
 	defer func() {
-		_ = os.RemoveAll(library)
+		_ = os.RemoveAll(ts.library)
 	}()
 
-	cfg := config.NewFromData(&config.Data{}, library)
+	cfg := config.NewFromData(&config.Data{}, ts.library)
 	interceptor := NewAuthInterceptor(cfg)
 	unary := interceptor.Unary()
 
-	md := metadata.Pairs(AuthHeader, strings.TrimSpace(TestInvalidCert))
+	md := metadata.Pairs(AuthHeader, ts.invalidCertBody)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	handlerCalled := false
@@ -154,22 +202,22 @@ func TestAuthInterceptorReturnsError_InvalidCert(t *testing.T) {
 }
 
 func TestAuthInterceptorSucceeds_MultipleCAsFirstFailsLaterSucceeds(t *testing.T) {
-	library := setup(t)
+	ts := setup(t)
 	defer func() {
-		_ = os.RemoveAll(library)
+		_ = os.RemoveAll(ts.library)
 	}()
 
-	caDirPath := fmt.Sprintf(CADirPath, library)
+	caDirPath := fmt.Sprintf(CADirPath, ts.library)
 	badCAFile := filepath.Join(caDirPath, "aaa_bad.pem")
-	if err := os.WriteFile(badCAFile, []byte(TestInvalidCert), 0600); err != nil {
+	if err := os.WriteFile(badCAFile, []byte(ts.invalidCertBody), 0600); err != nil {
 		t.Fatalf("failed to write bad ca pem: %v", err)
 	}
 
-	cfg := config.NewFromData(&config.Data{}, library)
+	cfg := config.NewFromData(&config.Data{}, ts.library)
 	interceptor := NewAuthInterceptor(cfg)
 	unary := interceptor.Unary()
 
-	md := metadata.Pairs(AuthHeader, strings.TrimSpace(TestCert))
+	md := metadata.Pairs(AuthHeader, ts.clientCertBody)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	called := false
@@ -198,11 +246,14 @@ func TestAuthInterceptorReturnsError_EmptyCADirectory(t *testing.T) {
 		t.Fatalf("failed to create ca dir: %v", err)
 	}
 
+	caKey, caCert, _ := generateCA(t)
+	clientCertBody := generateClientCert(t, caCert, caKey)
+
 	cfg := config.NewFromData(&config.Data{}, library)
 	interceptor := NewAuthInterceptor(cfg)
 	unary := interceptor.Unary()
 
-	md := metadata.Pairs(AuthHeader, strings.TrimSpace(TestCert))
+	md := metadata.Pairs(AuthHeader, clientCertBody)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	handlerCalled := false
