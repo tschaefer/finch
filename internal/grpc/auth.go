@@ -69,36 +69,29 @@ func (a *AuthInterceptor) authenticate(ctx context.Context) error {
 	certPem := fmt.Sprintf("%s%s%s", PEMHeader, values[0], PEMFooter)
 	caDirPath := fmt.Sprintf(CADirPath, a.config.Library())
 
-	pattern := filepath.Join(caDirPath, "*.pem")
-	caFiles, err := filepath.Glob(pattern)
+	x509Cert, err := a.parseCertFromPEM([]byte(certPem))
 	if err != nil {
-		slog.Error("failed to list CA certificates with glob pattern", "pattern", pattern, "error", err)
-		return status.Error(codes.Internal, "internal server error")
+		slog.Error("failed to parse client certificate", "error", err)
+		return status.Error(codes.Unauthenticated, "permission denied")
+	}
+	rid := x509Cert.Subject.CommonName
+	caFile := filepath.Join(caDirPath, fmt.Sprintf("%s.pem", rid))
+
+	caPem, err := os.ReadFile(caFile)
+	if err != nil {
+		slog.Warn("failed to read CA certificate for client", "rid", rid, "error", err)
+		return status.Error(codes.Unauthenticated, "permission denied")
+	}
+	valid, err := a.clientCertIsValid([]byte(certPem), caPem)
+	if err != nil {
+		slog.Warn("client certificate is not valid", "rid", rid, "error", err)
+		return status.Error(codes.Unauthenticated, "permission denied")
+	}
+	if !valid {
+		return status.Error(codes.Unauthenticated, "permission denied")
 	}
 
-	if len(caFiles) == 0 {
-		slog.Error("no CA certificates found in directory", "directory", caDirPath)
-		return status.Error(codes.Internal, "internal server error")
-	}
-
-	for _, caFile := range caFiles {
-		caPem, err := os.ReadFile(caFile)
-		if err != nil {
-			slog.Error("failed to read CA certificate", "path", caFile, "error", err)
-			continue
-		}
-
-		valid, err := a.clientCertIsValid([]byte(certPem), caPem)
-		if err != nil {
-			continue
-		}
-		if valid {
-			return nil
-		}
-	}
-
-	slog.Warn("client certificate is not valid")
-	return status.Error(codes.Unauthenticated, "permission denied")
+	return nil
 }
 
 func (a *AuthInterceptor) parseCertFromPEM(bytes []byte) (*x509.Certificate, error) {

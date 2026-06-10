@@ -5,6 +5,7 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package grpc
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -13,6 +14,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -44,7 +46,7 @@ func generateCA(t *testing.T) (*ecdsa.PrivateKey, *x509.Certificate, []byte) {
 
 	tmpl := &x509.Certificate{
 		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Finch"}, CommonName: "Finch Test CA"},
+		Subject:               pkix.Name{CommonName: "finch.example.com"},
 		NotBefore:             time.Now().Add(-time.Minute),
 		NotAfter:              time.Now().Add(10 * 365 * 24 * time.Hour),
 		IsCA:                  true,
@@ -76,7 +78,7 @@ func generateClientCert(t *testing.T, caCert *x509.Certificate, caKey *ecdsa.Pri
 
 	tmpl := &x509.Certificate{
 		SerialNumber: big.NewInt(2),
-		Subject:      pkix.Name{Organization: []string{"Finch"}, CommonName: "Finch Test Client"},
+		Subject:      pkix.Name{CommonName: "rid:finchctl:47110815"},
 		NotBefore:    time.Now().Add(-time.Minute),
 		NotAfter:     time.Now().Add(10 * 365 * 24 * time.Hour),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
@@ -129,6 +131,18 @@ func setup(t *testing.T) *testSetup {
 	}
 }
 
+func setupLogging(t *testing.T) *bytes.Buffer {
+	t.Helper()
+
+	buffer := bytes.NewBufferString("")
+	handler := slog.NewTextHandler(buffer, &slog.HandlerOptions{Level: slog.LevelDebug})
+	logger := slog.New(handler)
+
+	slog.SetDefault(logger)
+
+	return buffer
+}
+
 func TestAuthInterceptorSucceeds(t *testing.T) {
 	ts := setup(t)
 	defer func() {
@@ -166,12 +180,17 @@ func TestAuthInterceptorReturnsError_MissingMetadata(t *testing.T) {
 		return nil, nil
 	}
 
+	logBuffer := setupLogging(t)
+
 	_, err := unary(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
 	assert.Error(t, err)
 	st, ok := status.FromError(err)
 	assert.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 	assert.False(t, handlerCalled, "handler must not be called on auth failure")
+
+	logContent := logBuffer.String()
+	assert.Contains(t, logContent, "no metadata in context")
 }
 
 func TestAuthInterceptorReturnsError_InvalidCert(t *testing.T) {
@@ -193,46 +212,20 @@ func TestAuthInterceptorReturnsError_InvalidCert(t *testing.T) {
 		return nil, nil
 	}
 
+	logBuffer := setupLogging(t)
+
 	_, err := unary(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
 	assert.Error(t, err)
 	st, ok := status.FromError(err)
 	assert.True(t, ok)
 	assert.Equal(t, codes.Unauthenticated, st.Code())
 	assert.False(t, handlerCalled, "handler must not be called on auth failure")
+
+	logContent := logBuffer.String()
+	assert.Contains(t, logContent, "client certificate is not valid")
 }
 
-func TestAuthInterceptorSucceeds_MultipleCAsFirstFailsLaterSucceeds(t *testing.T) {
-	ts := setup(t)
-	defer func() {
-		_ = os.RemoveAll(ts.library)
-	}()
-
-	caDirPath := fmt.Sprintf(CADirPath, ts.library)
-	badCAFile := filepath.Join(caDirPath, "aaa_bad.pem")
-	if err := os.WriteFile(badCAFile, []byte(ts.invalidCertBody), 0600); err != nil {
-		t.Fatalf("failed to write bad ca pem: %v", err)
-	}
-
-	cfg := config.NewFromData(&config.Data{}, ts.library)
-	interceptor := NewAuthInterceptor(cfg)
-	unary := interceptor.Unary()
-
-	md := metadata.Pairs(AuthHeader, ts.clientCertBody)
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-
-	called := false
-	handler := func(ctx context.Context, req any) (any, error) {
-		called = true
-		return "ok", nil
-	}
-
-	resp, err := unary(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
-	assert.NoError(t, err)
-	assert.Equal(t, "ok", resp)
-	assert.True(t, called, "handler should have been called")
-}
-
-func TestAuthInterceptorReturnsError_EmptyCADirectory(t *testing.T) {
+func TestAuthInterceptorReturnsError_CAFileNotAvailable(t *testing.T) {
 	library, err := os.MkdirTemp("", "finch-test-lib-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
@@ -262,10 +255,15 @@ func TestAuthInterceptorReturnsError_EmptyCADirectory(t *testing.T) {
 		return nil, nil
 	}
 
+	logBuffer := setupLogging(t)
+
 	_, err = unary(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/test"}, handler)
 	assert.Error(t, err)
 	st, ok := status.FromError(err)
 	assert.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
+	assert.Equal(t, codes.Unauthenticated, st.Code())
 	assert.False(t, handlerCalled, "handler must not be called on auth failure")
+
+	logContent := logBuffer.String()
+	assert.Contains(t, logContent, "failed to read CA certificate for client")
 }
