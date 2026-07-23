@@ -6,7 +6,6 @@
 # The Minimal Observability Infrastructure
 
 [![Tag](https://img.shields.io/github/tag/tschaefer/finchctl.svg)](https://github.com/tschaefer/finchctl/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/tschaefer/finchctl)](https://goreportcard.com/report/github.com/tschaefer/finchctl)
 [![Contributors](https://img.shields.io/github/contributors/tschaefer/finchctl)](https://github.com/tschaefer/finchctl/graphs/contributors)
 [![License](https://img.shields.io/github/license/tschaefer/finchctl)](./LICENSE)
 
