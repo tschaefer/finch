@@ -54,7 +54,6 @@ type AgentData struct {
 	MetricsTargets    []string
 	Profiles          bool
 	RegisteredAt      string
-	Active            bool
 	CanViewToken      bool
 	CanDownloadConfig bool
 }
@@ -318,7 +317,6 @@ func (s *Server) sendAgentsUpdate(conn *websocket.Conn, page int, search string,
 			MetricsTargets:    agent.MetricsTargets,
 			Profiles:          agent.Profiles,
 			RegisteredAt:      agent.RegisteredAt.Format("2006-01-02 15:04:05"),
-			Active:            true,
 			CanViewToken:      s.controller.CanViewTokens(claims),
 			CanDownloadConfig: s.controller.CanDownloadConfig(claims),
 		}

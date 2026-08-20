@@ -117,7 +117,7 @@ func (d *Database) Migrate() error {
 		}
 	}
 
-	columnsToRemove := []string{"password", "password_hash", "username"}
+	columnsToRemove := []string{"password", "password_hash", "username", "active", "last_seen"}
 	for _, column := range columnsToRemove {
 		if d.connection.Migrator().HasColumn(&model.Agent{}, column) {
 			sql := fmt.Sprintf("ALTER TABLE agents DROP COLUMN %s", column)

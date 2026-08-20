@@ -68,12 +68,10 @@ func Test_MigrateSucceeds(t *testing.T) {
 	assert.NoError(t, err, "query table info")
 
 	columns := []string{
-		"active",
 		"created_at",
 		"hostname",
 		"id",
 		"labels",
-		"last_seen",
 		"log_sources",
 		"metrics",
 		"metrics_targets",

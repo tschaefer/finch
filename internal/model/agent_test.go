@@ -32,9 +32,7 @@ func Test_CreateAgentReturnsAgent(t *testing.T) {
 	assert.NotNil(t, m, "create model")
 
 	data := &Agent{
-		Active:       true,
 		Hostname:     "test-agent",
-		LastSeen:     nil,
 		LogSources:   []string{"source1", "source2"},
 		RegisteredAt: time.Now(),
 		ResourceId:   "resource-123",
@@ -47,9 +45,7 @@ func Test_CreateAgentReturnsAgent(t *testing.T) {
 	assert.Equal(t, data.LogSources, agent.LogSources, "agent log sources")
 	assert.Equal(t, data.ResourceId, agent.ResourceId, "agent resource ID")
 	assert.Equal(t, data.Labels, agent.Labels, "agent labels")
-	assert.Equal(t, data.Active, agent.Active, "agent active status")
 	assert.NotZero(t, agent.RegisteredAt, "agent registered at")
-	assert.Nil(t, agent.LastSeen, "agent last seen")
 	assert.NotZero(t, agent.ID, "agent ID")
 }
 
@@ -59,9 +55,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 	assert.NotNil(t, m, "create model")
 
 	data := &Agent{
-		Active:       true,
 		Hostname:     "test-agent",
-		LastSeen:     nil,
 		LogSources:   []string{"source1", "source2"},
 		RegisteredAt: time.Now(),
 		ResourceId:   "resource-123",
@@ -80,9 +74,7 @@ func Test_GetAgentReturnsAgent(t *testing.T) {
 	assert.Equal(t, createdAgent.LogSources, retrievedAgent.LogSources, "agent log sources")
 	assert.Equal(t, createdAgent.ResourceId, retrievedAgent.ResourceId, "agent resource ID")
 	assert.Equal(t, createdAgent.Labels, retrievedAgent.Labels, "agent labels")
-	assert.Equal(t, createdAgent.Active, retrievedAgent.Active, "agent active status")
 	assert.NotZero(t, retrievedAgent.RegisteredAt, "agent registered at")
-	assert.Nil(t, retrievedAgent.LastSeen, "agent last seen")
 	assert.Equal(t, createdAgent.ID, retrievedAgent.ID, "agent ID")
 }
 
@@ -104,9 +96,7 @@ func Test_DeleteAgentRemovesAgent(t *testing.T) {
 	assert.NotNil(t, m, "create model")
 
 	data := &Agent{
-		Active:       true,
 		Hostname:     "test-agent",
-		LastSeen:     nil,
 		LogSources:   []string{"source1", "source2"},
 		RegisteredAt: time.Now(),
 		ResourceId:   "resource-123",
@@ -132,18 +122,14 @@ func Test_ListAgentsReturnsAllAgents(t *testing.T) {
 
 	agentsData := []Agent{
 		{
-			Active:       true,
 			Hostname:     "agent-1",
-			LastSeen:     nil,
 			LogSources:   []string{"source1"},
 			RegisteredAt: time.Now(),
 			ResourceId:   "resource-1",
 			Labels:       []string{"key1=value1"},
 		},
 		{
-			Active:       false,
 			Hostname:     "agent-2",
-			LastSeen:     nil,
 			LogSources:   []string{"source2"},
 			RegisteredAt: time.Now(),
 			ResourceId:   "resource-2",
@@ -169,9 +155,7 @@ func Test_UpdateAgentModifiesAgent(t *testing.T) {
 	assert.NotNil(t, m, "create model")
 
 	data := &Agent{
-		Active:       true,
 		Hostname:     "test-agent",
-		LastSeen:     nil,
 		LogSources:   []string{"source1", "source2"},
 		RegisteredAt: time.Now(),
 		ResourceId:   "resource-123",
