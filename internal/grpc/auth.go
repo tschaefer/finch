@@ -47,6 +47,10 @@ func (a *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (any, error) {
 		if err := a.authenticate(ctx); err != nil {
+			if _, ok := os.LookupEnv("FINCH_DEV_MODE"); ok {
+				return handler(ctx, req)
+			}
+
 			return nil, err
 		}
 		return handler(ctx, req)

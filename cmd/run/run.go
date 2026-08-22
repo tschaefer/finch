@@ -6,6 +6,7 @@ package run
 
 import (
 	"context"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -27,6 +28,7 @@ func init() {
 	Cmd.Flags().StringP("server.log-level", "", "info", "Log level (debug, info, warn, error)")
 	Cmd.Flags().StringP("server.log-format", "", "structured", "Log format (structured, json)")
 	Cmd.Flags().StringP("stack.config-file", "", "/var/lib/finch/finch.json", "Config file of the stack")
+	Cmd.Flags().BoolP("server.dev-mode", "", false, "Run in development mode")
 
 	_ = Cmd.RegisterFlagCompletionFunc("server.log-level", completeServerLogLevel)
 	_ = Cmd.RegisterFlagCompletionFunc("server.log-format", completeServerLogFormat)
@@ -40,8 +42,13 @@ func runCmd(cmd *cobra.Command, args []string) {
 	config, _ := cmd.Flags().GetString("stack.config-file")
 	logLevel, _ := cmd.Flags().GetString("server.log-level")
 	logFormat, _ := cmd.Flags().GetString("server.log-format")
+	devMode, _ := cmd.Flags().GetBool("server.dev-mode")
 
 	setLogger(logLevel, logFormat)
+
+	if devMode {
+		_ = os.Setenv("FINCH_DEV_MODE", "true")
+	}
 
 	mgr, err := manager.New(config)
 	cobra.CheckErr(err)

@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -46,6 +47,10 @@ func NewServer(addr string, ctrl *controller.Controller, cfg *config.Config) *Se
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
+			if _, ok := os.LookupEnv("FINCH_DEV_MODE"); ok {
+				return true
+			}
+
 			origin := r.Header.Get("Origin")
 			if origin == "" {
 				slog.Error("WebSocket connection missing Origin header")

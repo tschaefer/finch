@@ -88,6 +88,10 @@ func (m *Manager) Run(ctx context.Context, addrs Addresses) {
 	slog.Info("Listening on " + addrs.Auth + " (Auth)")
 	slog.Info("Listening on " + addrs.Healthz + " (Healthz)")
 
+	if _, ok := os.LookupEnv("FINCH_DEV_MODE"); ok {
+		slog.Warn("Running in development mode with degraded security")
+	}
+
 	grpcServer, err := m.runGRPCServer(addrs.GRPC)
 	if err != nil {
 		slog.Error("Failed to start gRPC server", "error", err)
