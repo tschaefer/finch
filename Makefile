@@ -19,6 +19,10 @@ lint:
 test:
 	test -z $(shell go test ./... >/dev/null 2>&1 || echo 1) || (echo "[WARN] Fix test issues" && exit 1)
 
+.PHONY: coverage
+coverage:
+	test -z $(shell go test -covermode=atomic -coverprofile=coverage.out -p=4 ./internal/... >/dev/null 2>&1) || (echo "[WARN] Fix test coverage" && exit 1)
+
 .PHONY: proto
 proto:
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/api.proto

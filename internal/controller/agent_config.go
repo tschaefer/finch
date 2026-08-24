@@ -244,6 +244,18 @@ pyroscope.write "backend" {
 {{ end -}}
 `
 
+type logSources struct {
+	Journal bool
+	Docker  bool
+	Files   []string
+	Events  []string
+}
+
+type metricTarget struct {
+	Address     string
+	MetricsPath string
+}
+
 type alloyConfigData struct {
 	ServiceName        string
 	Hostname           string
@@ -252,19 +264,11 @@ type alloyConfigData struct {
 	TokenExpiry        string
 	ResourceId         string
 	InsecureSkipVerify bool
-	LogSources         struct {
-		Journal bool
-		Docker  bool
-		Files   []string
-		Events  []string
-	}
-	Metrics        bool
-	MetricsTargets []struct {
-		Address     string
-		MetricsPath string
-	}
-	Profiles bool
-	Labels   []string
+	LogSources         logSources
+	Metrics            bool
+	MetricsTargets     []metricTarget
+	Profiles           bool
+	Labels             []string
 }
 
 func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, error) {
@@ -291,24 +295,11 @@ func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, 
 		TokenExpiry:        expiresAt.Format("2006-01-02 15:04:05 MST"),
 		ResourceId:         agent.ResourceId,
 		InsecureSkipVerify: true,
-		LogSources: struct {
-			Journal bool
-			Docker  bool
-			Files   []string
-			Events  []string
-		}{
-			Journal: false,
-			Docker:  false,
-			Files:   make([]string, 0),
-			Events:  make([]string, 0),
-		},
-		Metrics: agent.Metrics,
-		MetricsTargets: make([]struct {
-			Address     string
-			MetricsPath string
-		}, 0),
-		Profiles: agent.Profiles,
-		Labels:   labels,
+		LogSources:         logSources{},
+		Metrics:            agent.Metrics,
+		MetricsTargets:     []metricTarget{},
+		Profiles:           agent.Profiles,
+		Labels:             labels,
 	}
 
 	files := make([]string, 0)
@@ -338,14 +329,14 @@ func (c *Controller) generateAlloyConfig(agent *model.Agent) (*alloyConfigData, 
 		if err != nil {
 			continue
 		}
-		entry := struct {
-			Address     string
-			MetricsPath string
-		}{
-			Address:     uri.Host,
-			MetricsPath: uri.Path,
-		}
-		data.MetricsTargets = append(data.MetricsTargets, entry)
+
+		data.MetricsTargets = append(
+			data.MetricsTargets,
+			metricTarget{
+				Address:     uri.Host,
+				MetricsPath: uri.Path,
+			},
+		)
 	}
 
 	certDir := path.Join(c.config.Library(), "traefik", "etc", "certs.d")

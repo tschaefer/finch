@@ -5,6 +5,8 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package controller
 
 import (
+	"os"
+	"path"
 	"strings"
 	"testing"
 
@@ -158,9 +160,9 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 		Node:           "unix",
 		Labels:         []string{"key=value", "statement"},
 		LogSources:     []string{"file:///var/log/syslog", "journal://", "docker://"},
-		Metrics:        false,
+		Metrics:        true,
 		MetricsTargets: []string{"http://localhost:9100/metrics"},
-		Profiles:       false,
+		Profiles:       true,
 	}
 
 	rid, err := ctrl.RegisterAgent(&data)
@@ -169,6 +171,83 @@ func Test_CreateAgentConfigReturnsConfig(t *testing.T) {
 	agentConfig, err := ctrl.CreateAgentConfig(rid)
 	assert.NoError(t, err, "create config for existing agent")
 	assert.NotEmpty(t, agentConfig, "agent config not empty")
+
+	agentConfigContent := string(agentConfig)
+	assert.Contains(t, agentConfigContent, "bearer_token", "agent config contains bearer token")
+	assert.Contains(t, agentConfigContent, "tls_config", "agent config contains tls config")
+	assert.Contains(t, agentConfigContent, "rid", "agent config contains resource Id")
+	assert.Contains(t, agentConfigContent, "test-host", "agent config contains hostname")
+	assert.Contains(t, agentConfigContent, "\"key\" = \"value\"", "agent config contains labels")
+	assert.Contains(t, agentConfigContent, "\"statement\" = \"true\"", "agent config contains labels")
+	assert.Contains(t, agentConfigContent, "loki.source.journal", "agent config contains log source journal")
+	assert.Contains(t, agentConfigContent, "loki.source.docker", "agent config contains log source docker")
+	assert.Contains(t, agentConfigContent, "loki.source.file", "agent config contains log source file")
+	assert.Contains(t, agentConfigContent, "prometheus.exporter", "agent config contains prometheus exporter")
+	assert.Contains(t, agentConfigContent, "prometheus.scrape", "agent config contains prometheus scrape")
+	assert.Contains(t, agentConfigContent, "pyroscope.write", "agent config contains pyroscope write")
+}
+
+func Test_CreateAgentConfigReturnsConfig_InsecureSkipVerifyFalse(t *testing.T) {
+	model := newModel(t)
+
+	lib, err := os.MkdirTemp("", "finch-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		_ = os.RemoveAll(lib)
+	}()
+
+	certs := path.Join(lib, "traefik", "etc", "certs.d")
+	err = os.MkdirAll(certs, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.WriteFile(path.Join(certs, "acme.json"), []byte{}, 0400)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := config.NewFromData(&config.Data{
+		Secret: "1suNCrW7sWlPbU+YCfdGQI7z3ZMo9Ru2GNV4h69QzaM=",
+		Id:     "test-id",
+	}, lib)
+
+	ctrl := New(model, cfg)
+	assert.NotNil(t, ctrl, "create controller")
+
+	data := Agent{
+		Hostname:       "test-host",
+		Node:           "unix",
+		Labels:         []string{"key=value", "statement"},
+		LogSources:     []string{"file:///var/log/syslog", "journal://", "docker://"},
+		Metrics:        true,
+		MetricsTargets: []string{"http://localhost:9100/metrics"},
+		Profiles:       true,
+	}
+
+	rid, err := ctrl.RegisterAgent(&data)
+	assert.NoError(t, err, "register agent with valid parameters")
+
+	agentConfig, err := ctrl.CreateAgentConfig(rid)
+	assert.NoError(t, err, "create config for existing agent")
+	assert.NotEmpty(t, agentConfig, "agent config not empty")
+
+	agentConfigContent := string(agentConfig)
+	assert.Contains(t, agentConfigContent, "bearer_token", "agent config contains bearer token")
+	assert.NotContains(t, agentConfigContent, "tls_config", "agent config not contains tls config")
+	assert.Contains(t, agentConfigContent, "rid", "agent config contains resource Id")
+	assert.Contains(t, agentConfigContent, "test-host", "agent config contains hostname")
+	assert.Contains(t, agentConfigContent, "\"key\" = \"value\"", "agent config contains labels")
+	assert.Contains(t, agentConfigContent, "\"statement\" = \"true\"", "agent config contains labels")
+	assert.Contains(t, agentConfigContent, "loki.source.journal", "agent config contains log source journal")
+	assert.Contains(t, agentConfigContent, "loki.source.docker", "agent config contains log source docker")
+	assert.Contains(t, agentConfigContent, "loki.source.file", "agent config contains log source file")
+	assert.Contains(t, agentConfigContent, "prometheus.exporter", "agent config contains prometheus exporter")
+	assert.Contains(t, agentConfigContent, "prometheus.scrape", "agent config contains prometheus scrape")
+	assert.Contains(t, agentConfigContent, "pyroscope.write", "agent config contains pyroscope write")
 }
 
 func Test_GetAgentReturnsError_AgentNotFound(t *testing.T) {
@@ -315,4 +394,40 @@ func Test_UpdateAgentSucceeds(t *testing.T) {
 	assert.True(t, agent.Metrics, "updated metrics flag")
 	assert.Equal(t, []string{"http://localhost:9100/metrics"}, agent.MetricsTargets, "updated metrics targets")
 	assert.True(t, agent.Profiles, "updated profiles flag")
+}
+
+func Test_CreateAgentConfigReturnsConfig_WithWindowsNode(t *testing.T) {
+	model := newModel(t)
+
+	ctrl := New(model, cfg)
+	assert.NotNil(t, ctrl, "create controller")
+
+	data := Agent{
+		Hostname:       "test-host",
+		Node:           "windows",
+		Labels:         []string{"key=value", "statement"},
+		LogSources:     []string{"event://Application"},
+		Metrics:        true,
+		MetricsTargets: []string{"http://localhost:9100/metrics"},
+		Profiles:       true,
+	}
+
+	rid, err := ctrl.RegisterAgent(&data)
+	assert.NoError(t, err, "register agent with valid parameters")
+
+	agentConfig, err := ctrl.CreateAgentConfig(rid)
+	assert.NoError(t, err, "create config for existing agent")
+	assert.NotEmpty(t, agentConfig, "agent config not empty")
+
+	agentConfigContent := string(agentConfig)
+	assert.Contains(t, agentConfigContent, "bearer_token", "agent config contains bearer token")
+	assert.Contains(t, agentConfigContent, "tls_config", "agent config contains tls config")
+	assert.Contains(t, agentConfigContent, "rid", "agent config contains resource Id")
+	assert.Contains(t, agentConfigContent, "test-host", "agent config contains hostname")
+	assert.Contains(t, agentConfigContent, "\"key\" = \"value\"", "agent config contains labels")
+	assert.Contains(t, agentConfigContent, "\"statement\" = \"true\"", "agent config contains labels")
+	assert.Contains(t, agentConfigContent, "loki.source.windowsevent", "agent config contains log source windows event")
+	assert.Contains(t, agentConfigContent, "prometheus.exporter", "agent config contains prometheus exporter")
+	assert.Contains(t, agentConfigContent, "prometheus.scrape", "agent config contains prometheus scrape")
+	assert.Contains(t, agentConfigContent, "pyroscope.write", "agent config contains pyroscope write")
 }
